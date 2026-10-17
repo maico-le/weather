@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:lottie/lottie.dart';
 import '../../../../core/utils/weather_mapper.dart';
 
 class AnimatedWeatherScene extends StatefulWidget {
@@ -77,6 +78,27 @@ class _AnimatedWeatherSceneState extends State<AnimatedWeatherScene>
 
   @override
   Widget build(BuildContext context) {
+    if (widget.conditionType == WeatherConditionType.sunny) {
+      return GestureDetector(
+        onTap: _onTapWeatherScene,
+        child: SizedBox(
+          width: widget.size,
+          height: widget.size,
+          child: Lottie.asset(
+            'assets/animations/sunny_duolingo.json',
+            fit: BoxFit.contain,
+            errorBuilder: (context, error, stackTrace) {
+              return _buildVectorFallback();
+            },
+          ),
+        ),
+      );
+    }
+
+    return _buildVectorFallback();
+  }
+
+  Widget _buildVectorFallback() {
     return GestureDetector(
       onTap: _onTapWeatherScene,
       child: AnimatedBuilder(
