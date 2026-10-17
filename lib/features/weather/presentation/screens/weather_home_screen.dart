@@ -3,8 +3,10 @@ import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/weather_mapper.dart';
 import '../../data/models/weather_model.dart';
+import '../../data/services/ai_advisor_service.dart';
 import '../../data/services/location_service.dart';
 import '../../data/services/weather_api_service.dart';
+import '../widgets/ai_advice_card.dart';
 import '../widgets/city_search_sheet.dart';
 import '../widgets/current_weather_hero.dart';
 import '../widgets/daily_forecast_list.dart';
@@ -25,6 +27,7 @@ class WeatherHomeScreen extends StatefulWidget {
 class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
   final WeatherApiService _apiService = WeatherApiService();
   final LocationService _locationService = LocationService();
+  final AiAdvisorService _aiService = AiAdvisorService();
 
   String _currentCity = 'Ho Chi Minh City';
   WeatherResponse? _weather;
@@ -32,6 +35,9 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
   bool _isLocating = false;
   String? _errorMessage;
   DateTime? _lastUpdated;
+
+  String? _aiAdvice;
+  bool _isLoadingAdvice = false;
 
   @override
   void initState() {
@@ -53,6 +59,7 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
           _isLoading = false;
           _lastUpdated = DateTime.now();
         });
+        _fetchAiAdvice(response);
       }
     } catch (e) {
       if (mounted) {
@@ -61,6 +68,34 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
           _isLoading = false;
         });
       }
+    }
+  }
+
+  Future<void> _fetchAiAdvice(WeatherResponse response) async {
+    if (!mounted) return;
+    setState(() {
+      _isLoadingAdvice = true;
+    });
+
+    final cityName = response.nearestArea.areaName.isNotEmpty
+        ? response.nearestArea.areaName
+        : _currentCity;
+    final rainChance = response.dailyForecast.isNotEmpty &&
+            response.dailyForecast[0].hourly.isNotEmpty
+        ? response.dailyForecast[0].hourly[0].chanceOfRain
+        : 20;
+
+    final advice = await _aiService.getAdvice(
+      city: cityName,
+      current: response.currentCondition,
+      rainChance: rainChance,
+    );
+
+    if (mounted) {
+      setState(() {
+        _aiAdvice = advice;
+        _isLoadingAdvice = false;
+      });
     }
   }
 
@@ -249,7 +284,16 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
           ),
         ),
 
-        const SliverToBoxAdapter(child: SizedBox(height: 16)),
+        // AI Advice Card (Connected to maico-le-server with smart fallback)
+        if (_aiAdvice != null || _isLoadingAdvice)
+          SliverToBoxAdapter(
+            child: AiAdviceCard(
+              advice: _aiAdvice ?? '',
+              isLoading: _isLoadingAdvice,
+            ),
+          ),
+
+        const SliverToBoxAdapter(child: SizedBox(height: 12)),
 
         // Hourly Forecast
         SliverToBoxAdapter(
@@ -307,7 +351,7 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
                     ),
                   const SizedBox(height: 4),
                   const Text(
-                    'Dữ liệu nguồn: wttr.in • Tối ưu bởi Lottie & Flutter',
+                    'Dữ liệu nguồn: wttr.in • Trợ lý AI: Maico Le Server • Lottie & Flutter',
                     style: TextStyle(
                       fontSize: 11,
                       color: AppColors.textMuted,
