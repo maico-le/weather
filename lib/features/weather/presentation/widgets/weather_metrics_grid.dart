@@ -125,23 +125,31 @@ class _WeatherMetricsGridState extends State<WeatherMetricsGrid>
           crossAxisSpacing: 12,
           childAspectRatio: 1.45,
           children: [
-            // 1. Humidity (Breathing squash & stretch droplet)
+            // 1. Humidity (Cute Duolingo Lottie Water Droplet with squash-and-stretch fallback)
             _buildMetricItem(
-              iconWidget: AnimatedBuilder(
-                animation: _pulseAnimation,
-                builder: (context, child) {
-                  final stretch = 0.09 * _pulseAnimation.value;
-                  return Transform.scale(
-                    scaleX: 1.0 - stretch,
-                    scaleY: 1.0 + stretch,
-                    alignment: Alignment.bottomCenter,
-                    child: child,
-                  );
-                },
-                child: const Icon(
-                  Icons.water_drop_outlined,
-                  size: 18,
-                  color: AppColors.accentRain,
+              iconWidget: SizedBox(
+                width: 22,
+                height: 22,
+                child: Lottie.asset(
+                  'assets/animations/water_droplet_duolingo.json',
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) => AnimatedBuilder(
+                    animation: _pulseAnimation,
+                    builder: (context, child) {
+                      final stretch = 0.09 * _pulseAnimation.value;
+                      return Transform.scale(
+                        scaleX: 1.0 - stretch,
+                        scaleY: 1.0 + stretch,
+                        alignment: Alignment.bottomCenter,
+                        child: child,
+                      );
+                    },
+                    child: const Icon(
+                      Icons.water_drop_outlined,
+                      size: 18,
+                      color: AppColors.accentRain,
+                    ),
+                  ),
                 ),
               ),
               label: 'ĐỘ ẨM',
