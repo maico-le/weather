@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/weather_mapper.dart';
 import '../../data/models/weather_model.dart';
+import 'animated_roll_counter.dart';
 import 'animated_weather_scene.dart';
 
 class CurrentWeatherHero extends StatelessWidget {
@@ -34,13 +35,13 @@ class CurrentWeatherHero extends StatelessWidget {
         ),
         const SizedBox(height: 8),
 
-        // Large Temperature
+        // Large Temperature with Animated Rolling Counter
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              '${current.tempC}',
+            AnimatedRollCounter(
+              value: current.tempC,
               style: const TextStyle(
                 fontSize: 84,
                 fontWeight: FontWeight.w200,

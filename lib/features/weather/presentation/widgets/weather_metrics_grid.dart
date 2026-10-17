@@ -1,12 +1,84 @@
 import 'package:flutter/material.dart';
+import 'package:lottie/lottie.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../data/models/weather_model.dart';
+import 'animated_roll_counter.dart';
 import 'glass_card.dart';
 
-class WeatherMetricsGrid extends StatelessWidget {
+class WeatherMetricsGrid extends StatefulWidget {
   final CurrentCondition current;
 
   const WeatherMetricsGrid({super.key, required this.current});
+
+  @override
+  State<WeatherMetricsGrid> createState() => _WeatherMetricsGridState();
+}
+
+class _WeatherMetricsGridState extends State<WeatherMetricsGrid>
+    with TickerProviderStateMixin {
+  late AnimationController _windController;
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
+  late AnimationController _swayController;
+  late Animation<double> _swayAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // 💨 1. Wind icon continuous spin - speed proportional to current windSpeedKmph
+    _windController = AnimationController(
+      vsync: this,
+      duration: _computeWindDuration(widget.current.windSpeedKmph),
+    )..repeat();
+
+    // 💧 2. Pulse controller for breathing water droplet & UV sun flare
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    )..repeat(reverse: true);
+    _pulseAnimation = CurvedAnimation(
+      parent: _pulseController,
+      curve: Curves.easeInOut,
+    );
+
+    // ☁️ 3. Sway controller for floating cloud and rocking barometer needle
+    _swayController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2400),
+    )..repeat(reverse: true);
+    _swayAnimation = CurvedAnimation(
+      parent: _swayController,
+      curve: Curves.easeInOutSine,
+    );
+  }
+
+  Duration _computeWindDuration(int speedKmph) {
+    final clamped = speedKmph.clamp(3, 70);
+    // 3 km/h -> 3500ms (gentle breeze), 70 km/h -> 600ms (fast gale)
+    final ms = (3500 - (clamped - 3) * (2900 / 67)).round();
+    return Duration(milliseconds: ms);
+  }
+
+  @override
+  void didUpdateWidget(covariant WeatherMetricsGrid oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.current.windSpeedKmph != widget.current.windSpeedKmph) {
+      _windController.duration =
+          _computeWindDuration(widget.current.windSpeedKmph);
+      if (!_windController.isAnimating) {
+        _windController.repeat();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _windController.dispose();
+    _pulseController.dispose();
+    _swayController.dispose();
+    super.dispose();
+  }
 
   String _getUvLabel(int uv) {
     if (uv <= 2) return 'Thấp';
@@ -18,6 +90,8 @@ class WeatherMetricsGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final current = widget.current;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -25,7 +99,11 @@ class WeatherMetricsGrid extends StatelessWidget {
           padding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
           child: Row(
             children: [
-              Icon(Icons.dashboard_outlined, size: 16, color: AppColors.textSecondary),
+              Icon(
+                Icons.dashboard_outlined,
+                size: 16,
+                color: AppColors.textSecondary,
+              ),
               SizedBox(width: 8),
               Text(
                 'CHỈ SỐ THỜI TIẾT',
@@ -47,46 +125,158 @@ class WeatherMetricsGrid extends StatelessWidget {
           crossAxisSpacing: 12,
           childAspectRatio: 1.45,
           children: [
+            // 1. Humidity (Breathing squash & stretch droplet)
             _buildMetricItem(
-              icon: Icons.water_drop_outlined,
-              iconColor: AppColors.accentRain,
+              iconWidget: AnimatedBuilder(
+                animation: _pulseAnimation,
+                builder: (context, child) {
+                  final stretch = 0.09 * _pulseAnimation.value;
+                  return Transform.scale(
+                    scaleX: 1.0 - stretch,
+                    scaleY: 1.0 + stretch,
+                    alignment: Alignment.bottomCenter,
+                    child: child,
+                  );
+                },
+                child: const Icon(
+                  Icons.water_drop_outlined,
+                  size: 18,
+                  color: AppColors.accentRain,
+                ),
+              ),
               label: 'ĐỘ ẨM',
-              value: '${current.humidity}%',
+              value: current.humidity,
+              suffix: '%',
               subtext: current.humidity > 80 ? 'Không khí rất ẩm' : 'Dễ chịu',
             ),
+
+            // 2. Wind (Cute Duolingo Lottie Pinwheel with rotating fallback)
             _buildMetricItem(
-              icon: Icons.air_rounded,
-              iconColor: AppColors.accentWind,
+              iconWidget: SizedBox(
+                width: 22,
+                height: 22,
+                child: Lottie.asset(
+                  'assets/animations/wind_pinwheel_duolingo.json',
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) =>
+                      RotationTransition(
+                    turns: _windController,
+                    child: const Icon(
+                      Icons.air_rounded,
+                      size: 18,
+                      color: AppColors.accentWind,
+                    ),
+                  ),
+                ),
+              ),
               label: 'GIÓ',
-              value: '${current.windSpeedKmph} km/h',
+              value: current.windSpeedKmph,
+              suffix: ' km/h',
               subtext: 'Hướng ${current.windDir}',
             ),
+
+            // 3. UV Index (Pulsing glowing sun disc)
             _buildMetricItem(
-              icon: Icons.wb_sunny_outlined,
-              iconColor: AppColors.accentSun,
+              iconWidget: AnimatedBuilder(
+                animation: _pulseAnimation,
+                builder: (context, child) {
+                  final scale = 1.0 + 0.14 * _pulseAnimation.value;
+                  return Transform.scale(
+                    scale: scale,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.accentSun.withValues(
+                              alpha: 0.3 * _pulseAnimation.value,
+                            ),
+                            blurRadius: 7 * _pulseAnimation.value,
+                            spreadRadius: 1 * _pulseAnimation.value,
+                          ),
+                        ],
+                      ),
+                      child: child,
+                    ),
+                  );
+                },
+                child: const Icon(
+                  Icons.wb_sunny_outlined,
+                  size: 18,
+                  color: AppColors.accentSun,
+                ),
+              ),
               label: 'CHỈ SỐ UV',
-              value: '${current.uvIndex}',
+              value: current.uvIndex,
+              suffix: '',
               subtext: _getUvLabel(current.uvIndex),
             ),
+
+            // 4. Pressure (Rocking barometer gauge needle)
             _buildMetricItem(
-              icon: Icons.speed_rounded,
-              iconColor: const Color(0xFFB388FF),
+              iconWidget: AnimatedBuilder(
+                animation: _swayAnimation,
+                builder: (context, child) {
+                  final angle = (_swayAnimation.value - 0.5) * 0.28;
+                  return Transform.rotate(
+                    angle: angle,
+                    child: child,
+                  );
+                },
+                child: const Icon(
+                  Icons.speed_rounded,
+                  size: 18,
+                  color: Color(0xFFB388FF),
+                ),
+              ),
               label: 'ÁP SUẤT',
-              value: '${current.pressureHpa} hPa',
+              value: current.pressureHpa,
+              suffix: ' hPa',
               subtext: 'Áp suất khí quyển',
             ),
+
+            // 5. Visibility (Subtle optical focus shimmer)
             _buildMetricItem(
-              icon: Icons.visibility_outlined,
-              iconColor: const Color(0xFF64B5F6),
+              iconWidget: AnimatedBuilder(
+                animation: _pulseAnimation,
+                builder: (context, child) {
+                  return Opacity(
+                    opacity: 0.75 + 0.25 * _pulseAnimation.value,
+                    child: child,
+                  );
+                },
+                child: const Icon(
+                  Icons.visibility_outlined,
+                  size: 18,
+                  color: Color(0xFF64B5F6),
+                ),
+              ),
               label: 'TẦM NHÌN',
-              value: '${current.visibilityKm} km',
+              value: current.visibilityKm,
+              suffix: ' km',
               subtext: current.visibilityKm >= 10 ? 'Rõ ràng' : 'Giảm tầm nhìn',
             ),
+
+            // 6. Cloud Cover (Gentle horizontal floating cloud)
             _buildMetricItem(
-              icon: Icons.cloud_outlined,
-              iconColor: const Color(0xFF90A4AE),
+              iconWidget: AnimatedBuilder(
+                animation: _swayAnimation,
+                builder: (context, child) {
+                  final offset = (_swayAnimation.value - 0.5) * 3.5;
+                  return Transform.translate(
+                    offset: Offset(offset, 0),
+                    child: child,
+                  );
+                },
+                child: const Icon(
+                  Icons.cloud_outlined,
+                  size: 18,
+                  color: Color(0xFF90A4AE),
+                ),
+              ),
               label: 'ĐỘ MÂY',
-              value: '${current.cloudcover}%',
+              value: current.cloudcover,
+              suffix: '%',
               subtext: 'Mức độ che phủ',
             ),
           ],
@@ -96,10 +286,10 @@ class WeatherMetricsGrid extends StatelessWidget {
   }
 
   Widget _buildMetricItem({
-    required IconData icon,
-    required Color iconColor,
+    required Widget iconWidget,
     required String label,
-    required String value,
+    required num value,
+    required String suffix,
     required String subtext,
   }) {
     return GlassCard(
@@ -112,21 +302,26 @@ class WeatherMetricsGrid extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(icon, size: 18, color: iconColor),
+              iconWidget,
               const SizedBox(width: 6),
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textMuted,
-                  letterSpacing: 0.8,
+              Expanded(
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textMuted,
+                    letterSpacing: 0.8,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
           ),
-          Text(
-            value,
+          AnimatedRollCounter(
+            value: value,
+            suffix: suffix,
             style: const TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.w700,
