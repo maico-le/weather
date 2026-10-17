@@ -97,6 +97,47 @@ class CurrentCondition {
   }
 }
 
+class AstronomyInfo {
+  final String sunrise;
+  final String sunset;
+  final String moonrise;
+  final String moonset;
+  final String moonPhase;
+  final int moonIllumination;
+
+  AstronomyInfo({
+    required this.sunrise,
+    required this.sunset,
+    required this.moonrise,
+    required this.moonset,
+    required this.moonPhase,
+    required this.moonIllumination,
+  });
+
+  factory AstronomyInfo.fromJson(Map<String, dynamic> json) {
+    return AstronomyInfo(
+      sunrise: json['sunrise']?.toString() ?? '05:48 AM',
+      sunset: json['sunset']?.toString() ?? '05:45 PM',
+      moonrise: json['moonrise']?.toString() ?? '06:00 PM',
+      moonset: json['moonset']?.toString() ?? '06:00 AM',
+      moonPhase: json['moon_phase']?.toString() ?? 'Full Moon',
+      moonIllumination:
+          int.tryParse(json['moon_illumination']?.toString() ?? '50') ?? 50,
+    );
+  }
+
+  factory AstronomyInfo.defaultInfo() {
+    return AstronomyInfo(
+      sunrise: '05:48 AM',
+      sunset: '05:45 PM',
+      moonrise: '06:15 PM',
+      moonset: '06:00 AM',
+      moonPhase: 'Waxing Gibbous',
+      moonIllumination: 78,
+    );
+  }
+}
+
 class DailyWeather {
   final String date;
   final int maxTempC;
@@ -104,6 +145,7 @@ class DailyWeather {
   final int avgTempC;
   final int uvIndex;
   final List<HourlyWeather> hourly;
+  final AstronomyInfo astronomy;
 
   DailyWeather({
     required this.date,
@@ -112,10 +154,13 @@ class DailyWeather {
     required this.avgTempC,
     required this.uvIndex,
     required this.hourly,
+    required this.astronomy,
   });
 
   factory DailyWeather.fromJson(Map<String, dynamic> json) {
     final hourlyList = json['hourly'] as List<dynamic>? ?? [];
+    final astroList = json['astronomy'] as List<dynamic>? ?? [];
+
     return DailyWeather(
       date: json['date']?.toString() ?? '',
       maxTempC: int.tryParse(json['maxtempC']?.toString() ?? '0') ?? 0,
@@ -125,6 +170,9 @@ class DailyWeather {
       hourly: hourlyList
           .map((item) => HourlyWeather.fromJson(item as Map<String, dynamic>))
           .toList(),
+      astronomy: astroList.isNotEmpty
+          ? AstronomyInfo.fromJson(astroList[0] as Map<String, dynamic>)
+          : AstronomyInfo.defaultInfo(),
     );
   }
 }

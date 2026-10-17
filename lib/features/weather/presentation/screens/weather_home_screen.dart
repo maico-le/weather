@@ -21,6 +21,7 @@ import '../widgets/hourly_forecast_list.dart';
 import '../widgets/interactive_weather_sky.dart';
 import '../widgets/weather_alert_banner.dart';
 import '../widgets/weather_forecast_chart.dart';
+import '../widgets/sun_moon_tracker_card.dart';
 import '../widgets/weather_metrics_grid.dart';
 import '../widgets/weather_radar_map_widget.dart';
 import '../widgets/weather_story_share_sheet.dart';
@@ -616,6 +617,17 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
             child: WeatherMetricsGrid(current: current),
           ),
         ),
+
+        const SliverToBoxAdapter(child: SizedBox(height: 16)),
+
+        // Sun & Moon Arc Tracker
+        if (today != null)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: SunMoonTrackerCard(astronomy: today.astronomy),
+            ),
+          ),
 
         const SliverToBoxAdapter(child: SizedBox(height: 16)),
 
