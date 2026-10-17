@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <b>Ứng dụng theo dõi thời tiết thế hệ mới với đồ họa Vector Animation & giao diện Glassmorphism đỉnh cao.</b>
+  <b>Next-generation weather application featuring real-time vector animations, frosted glassmorphism UI, and AI-powered lifestyle & outfit advice.</b>
 </p>
 
 <p align="center">
@@ -26,116 +26,116 @@
 
 ---
 
-## 🌟 Điểm Nhấn Đột Phá
+## 🌟 Key Features & Highlights
 
-### 1. Vector Animation (Lottie & Custom Canvas Vector)
-- **Chuẩn mực 60 / 120 FPS**: Không sử dụng ảnh tĩnh nhạt nhòa, Weather Glow ứng dụng hoạt hình vector chuyển động siêu mượt mà.
-- **Tương tác trực quan**: Mặt trời xoay tỏa hào quang rực rỡ, những đám mây trôi bồng bềnh, những giọt mưa rơi tí tách và những tia chớp sống động ngay trên màn hình.
+### 1. 🤖 AI Weather & Smart Outfit Advisor
+- **Google Gemini 2.5 Flash Powered**: Connected to the unified [Maico Le Gateway](https://maico-le-server.vercel.app/) built in Go.
+- **Context-Aware Lifestyle Advice**: Analyzes real-time temperature, humidity, UV index, and rain probability to suggest the ideal outfit, skincare protection (SPF 50+), hydration tips, and best outdoor hours.
+- **Dual-Layer Fallback**: Seamlessly falls back to an intelligent local rule engine if network connectivity is intermittent.
 
-### 2. Thiết Kế Dynamic Glassmorphism
-- **Kính mờ sang trọng (Frosted Glass)**: Hệ thống card hiển thị ứng dụng công nghệ làm mờ Gaussian đa tầng cùng hiệu ứng viền sáng tinh tế.
-- **Bầu trời đổi màu theo thời gian thực (Dynamic Sky)**: Màu nền tự động chuyển dịch theo nhịp điệu thiên nhiên:
-  - 🌅 **Nắng vàng quang đãng**: Xanh ngọc bích hòa cùng ánh cam hổ phách.
-  - 🌧️ **Mưa rào & Âm u**: Xám lam thạch anh huyền bí.
-  - ⚡ **Dông sét dữ dội**: Sắc tím ánh điện quyền lực.
-  - 🌙 **Màn đêm tĩnh lặng**: Xanh thẫm đại dương thanh bình.
+### 2. 🌌 Interactive Dynamic Sky & Particle Engine
+- **Touch & Gesture Interaction (Celestial Ripple)**: Tap and drag across the sky to generate responsive light ripples and atmospheric wind flows.
+- **Atmospheric Floating Particles**: 25 ambient atmospheric dust particles drifting gracefully in real-time calculated by hardware-accelerated Custom Canvas shaders.
+- **Smooth 60/120 FPS Vector Animations**: Lottie & vector scenes smoothly responding to sunny, cloudy, rainy, thunderous, or twilight night conditions.
 
-### 3. Tương Tác Chạm Bầu Trời Động (Interactive Weather Sky)
-- **Hiệu ứng sóng hào quang thiên thể (Celestial Ripple)**: Chạm hoặc vuốt ngón tay lên bầu trời sẽ tạo ra luồng ánh sáng và sóng tỏa lan tỏa huyền ảo.
-- **Hạt ánh sáng lơ lửng (Ambient Atmospheric Dust)**: 25 hạt ánh sáng sinh học trôi bồng bềnh theo chuyển động không khí.
+### 3. 🎨 Dynamic Frosted Glassmorphism UI
+- **Multi-layer Blur & Edge Highlights**: Elegant translucent frosted glass surfaces designed with modern Apple iOS / visionOS aesthetics.
+- **Adaptive Natural Palette**:
+  - 🌅 **Clear Sunny**: Jade azure blending into amber sunlight.
+  - 🌧️ **Rain & Overcast**: Deep quartz slate with calming indigo undertones.
+  - ⚡ **Thunderstorm**: Electrifying deep purple twilight.
+  - 🌙 **Serene Night**: Peaceful midnight ocean navy.
 
-### 4. Tự Động Định Vị Vị Trí Hiện Tại Bằng GPS
-- **Một chạm nhận diện**: Nút định vị GPS thông minh trên thanh tiêu đề tự động quét tọa độ kinh độ/vĩ độ chính xác từ thiết bị để cập nhật thời tiết tại nơi bạn đang đứng.
+### 4. 🔔 Multi-Session Local Weather Notifications
+- **Configurable Daily Notification Intervals**:
+  - 🌤️ **Morning (07:00)**: Wake-up summary, rain warnings, and outfit recommendations before heading out.
+  - ☀️ **Noon (12:00)**: Peak UV index alerts, heat protection, and hydration reminders.
+  - 🌙 **Evening (18:00)**: Evening forecast, ambient temperature, and night activity planning.
+- **Instant Test Notification**: Test sound, vibration, and banner previews with a single tap from the settings screen.
 
-### 5. Cảnh Báo Thời Tiết Nguy Hại (Smart Extreme Alerts)
-- Tự động phân tích dữ liệu khí tượng theo thời gian thực để đưa ra khuyến cáo kịp thời:
-  - ⚠️ **Chỉ số UV nguy hại (>= 8)**: Cảnh báo nguy cơ bỏng rát da và khuyến nghị bảo hộ.
-  - ⚡ **Dông bão & Lốc sét**: Nhắc nhở tìm nơi trú ẩn an toàn.
-  - 🌧️ **Mưa rào sắp tới**: Dự báo trước mưa rào trong 2-3 giờ kế tiếp.
-  - 💨 **Gió giật mạnh**: Cảnh báo khi tốc độ gió vượt 35 km/h.
+### 5. 🚨 Real-Time Extreme Weather Alerts
+- Proactive meteorological hazard detection:
+  - ⚠️ **Hazardous UV Index (≥ 8)**: Warning against direct sunburn and eye strain.
+  - 🔥 **Extreme Heat (≥ 35°C)**: Heat exhaustion protection guidelines.
+  - ⚡ **Severe Thunderstorms & Gale (≥ 45 km/h)**: Safety and commuting precautions.
 
-### 6. Thông Số Khí Tượng Chuẩn Xác & Toàn Diện
-- **Dự báo theo giờ (Hourly Timeline)**: Nắm bắt chi tiết nhiệt độ và xác suất mưa từng khung giờ trong ngày để chủ động mọi lịch trình.
-- **Dự báo các ngày tới (Multi-day Forecast)**: Xem xu hướng thời tiết, biên độ nhiệt độ Cao / Thấp trực quan qua thanh dải màu.
-- **Bộ 6 chỉ số môi trường thông minh**:
-  - 💧 **Độ ẩm không khí**
-  - 💨 **Tốc độ gió & Hướng gió**
-  - ☀️ **Chỉ số UV an toàn cho da**
-  - 🌡️ **Áp suất khí quyển**
-  - 👁️ **Tầm nhìn xa**
-  - ☁️ **Độ che phủ mây**
-- **Sẵn sàng cho Widget màn hình chính (Home Widget Preview)**: Giao diện thẻ kính mờ nhỏ gọn, hiện đại tương thích phong cách Android AppWidget và iOS WidgetKit.
+### 6. ⚡ Zero-Latency Offline-First Architecture
+- **Instant Launch (0.01s)**: Snapshots the latest weather forecast and AI advice using persistent local cache. The app opens immediately without blank loading screens (Stale-While-Revalidate pattern).
+- **One-Tap GPS Auto-Location**: Instant latitude/longitude reverse-geocoding via native device sensors.
 
 ---
 
-## 📥 Tải Xuống Ứng Dụng
+## 📥 Download & Installation
 
-Bạn có thể tải ngay file cài đặt Android APK chính thức để trải nghiệm:
+Get the official release APK directly on your Android device:
 
-👉 **[Tải xuống Weather Glow APK mới nhất](https://github.com/maico-le/weather/releases/latest)**
+👉 **[Download Latest Weather Glow APK](https://github.com/maico-le/weather/releases/latest)**
 
-*Lưu ý: Sau khi tải file `.apk`, chọn **Cho phép cài đặt từ nguồn này** trên điện thoại Android của bạn để hoàn tất cài đặt.*
+*Note: After downloading the `.apk` file, allow "Install from this source" in your Android security settings to complete installation.*
 
 ---
 
-## 📱 Trải Nghiệm Giao Diện
+## 📱 Interface Architecture Preview
 
 ```
 ┌──────────────────────────────────────────────┐
-│  📍 Ho Chi Minh City ▾            📡  🔍     │
+│  📍 Ho Chi Minh City ▾        📡  🔍  ⚙️     │
 │                                              │
-│  ⚠️ CẢNH BÁO TIA UV NGUY HẠI (8/11+)          │
+│  ⚠️ EXTREME UV ALERT (Index: 9 / Very High)  │
 │                                              │
 │               ☀️ (Vector Animation)           │
 │                                              │
-│                    28°C                      │
-│             Trời quang, nắng đẹp             │
-│        Cảm giác như 31° • Cao: 33° Thấp: 25° │
+│                    33°C                      │
+│             Sunny & Hot Afternoon            │
+│        Feels like 36° • High: 35° Low: 25°   │
 │                                              │
 │ ┌──────────────────────────────────────────┐ │
-│ │ DỰ BÁO THEO GIỜ                          │ │
-│ │ Bây giờ    03:00    06:00    09:00       │ │
-│ │   ☀️        ⛅       🌧️       🌤️         │ │
-│ │   28°       26°      25°      29°        │ │
+│ │ 🤖 AI WEATHER ADVISOR (Gemini 2.5 Flash) │ │
+│ │ Wear lightweight cotton, apply SPF 50+   │ │
+│ │ sunscreen, and carry a compact umbrella. │ │
 │ └──────────────────────────────────────────┘ │
 │                                              │
 │ ┌──────────────────────────────────────────┐ │
-│ │ DỰ BÁO CÁC NGÀY TỚI                      │ │
-│ │ Hôm nay   ☀️  25° ═══════ 33°             │ │
-│ │ Ngày mai  🌧️  24° ═════ 31°              │ │
+│ │ HOURLY FORECAST                          │ │
+│ │ Now        14:00    16:00    18:00       │ │
+│ │   ☀️        ⛅       🌧️       🌤️         │ │
+│ │   33°       32°      29°      28°        │ │
 │ └──────────────────────────────────────────┘ │
 │                                              │
 │ ┌───────────────────┐  ┌───────────────────┐ │
-│ │ 💧 ĐỘ ẨM          │  │ 💨 GIÓ            │ │
-│ │ 85%               │  │ 8 km/h NE         │ │
+│ │ 💧 HUMIDITY       │  │ 💨 WIND           │ │
+│ │ 75%               │  │ 12 km/h NE        │ │
 │ └───────────────────┘  └───────────────────┘ │
 └──────────────────────────────────────────────┘
 ```
 
 ---
 
-## 🗺️ Lộ Trình Phát Triển (Milestones)
+## 🗺️ Engineering Milestones
 
-- [x] **Milestone 1**: Khởi tạo kiến trúc Feature-First, cấu hình CI/CD tự động build APK release trên GitHub Actions.
-- [x] **Milestone 2**: Tích hợp nguồn dữ liệu thời tiết wttr.in JSON, tối ưu hóa bộ mapper dữ liệu & tiếng Việt hóa ngữ cảnh.
-- [x] **Milestone 3**: Thiết kế giao diện Glassmorphism cao cấp, tích hợp Vector Animation (Lottie & Custom Canvas Vector 60fps), dự báo theo giờ & nhiều ngày.
-- [x] **Milestone 4**: Tích hợp tương tác chạm bầu trời động (Interactive Weather Sky), hiệu ứng gợn sóng thiên thể & hạt ánh sáng chuyển động.
-- [x] **Milestone 5**: Tự động định vị GPS (Geolocator), xem trước tiện ích ngoài màn hình chính (Home Screen Widget).
-- [x] **Milestone 6**: Banner cảnh báo thời tiết cực đoan thông minh (Dông sét, UV nguy hại, mưa lớn, gió bão).
+- [x] **Milestone 1**: Clean / Feature-First architecture, GitHub Actions automated APK release CI/CD.
+- [x] **Milestone 2**: wttr.in JSON integration, custom models, and localized conditions.
+- [x] **Milestone 3**: Premium Glassmorphism design, 60fps vector animations (Lottie & Custom Canvas), hourly & 3-day forecast.
+- [x] **Milestone 4**: Interactive celestial sky touch ripples, floating atmospheric particles.
+- [x] **Milestone 5**: Native GPS auto-location (Geolocator), home screen widget simulation.
+- [x] **Milestone 6**: Intelligent extreme weather banners (Thunderstorm, UV, Heatwave, Gale).
+- [x] **Milestone 7**: Golang serverless gateway with Gemini 2.5 Flash AI advice integration.
+- [x] **Milestone 8**: Settings Screen with multi-session customizable local notifications.
 
 ---
 
-## 🛠️ Công Nghệ Phát Triển
+## 🛠️ Technology Stack
 
-- **Framework**: Flutter 3 (Engine tối ưu hóa Material 3)
-- **Ngôn ngữ**: Dart
-- **Đồ họa**: Lottie Vector Animation, Rive & Flutter Custom Canvas Painter
-- **Kiến trúc**: Feature-first / Clean Architecture
-- **Định vị**: Geolocator (GPS Native Service)
-- **CI/CD**: GitHub Actions tự động build & release APK
+- **Client App**: Flutter 3 (Dart 3, Material 3)
+- **Backend Gateway**: Golang (Go 1.23, Vercel Serverless Functions)
+- **AI Engine**: Google Gemini 2.5 Flash
+- **Graphics & Motion**: Lottie Vector Animations, Custom Canvas Shaders
+- **Persistence**: SharedPreferences (Zero-latency cache & settings)
+- **Notifications**: Flutter Local Notifications (Core Library Desugared)
+- **CI/CD Pipeline**: GitHub Actions Release Automations
 
 ---
 
 <p align="center">
-  Phát triển với ❤️ bởi <b>Maico Le</b>
+  Crafted with ❤️ by <b>Maico Le</b>
 </p>
