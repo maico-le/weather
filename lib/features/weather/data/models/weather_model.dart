@@ -182,11 +182,15 @@ class NearestArea {
   final String areaName;
   final String country;
   final String region;
+  final double latitude;
+  final double longitude;
 
   NearestArea({
     required this.areaName,
     required this.country,
     required this.region,
+    required this.latitude,
+    required this.longitude,
   });
 
   factory NearestArea.fromJson(Map<String, dynamic> json) {
@@ -197,10 +201,15 @@ class NearestArea {
       return '';
     }
 
+    final latStr = json['latitude']?.toString() ?? '10.8231';
+    final lonStr = json['longitude']?.toString() ?? '106.6297';
+
     return NearestArea(
       areaName: extractValue(json['areaName'] as List<dynamic>?),
       country: extractValue(json['country'] as List<dynamic>?),
       region: extractValue(json['region'] as List<dynamic>?),
+      latitude: double.tryParse(latStr) ?? 10.8231,
+      longitude: double.tryParse(lonStr) ?? 106.6297,
     );
   }
 
@@ -209,6 +218,8 @@ class NearestArea {
       areaName: 'Ho Chi Minh City',
       country: 'Vietnam',
       region: 'Dong Nam Bo',
+      latitude: 10.8231,
+      longitude: 106.6297,
     );
   }
 }

@@ -21,6 +21,7 @@ import '../widgets/interactive_weather_sky.dart';
 import '../widgets/weather_alert_banner.dart';
 import '../widgets/weather_forecast_chart.dart';
 import '../widgets/weather_metrics_grid.dart';
+import '../widgets/weather_radar_map_widget.dart';
 import 'settings_screen.dart';
 
 class WeatherHomeScreen extends StatefulWidget {
@@ -581,6 +582,22 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
             child: WeatherMetricsGrid(current: current),
           ),
         ),
+
+        const SliverToBoxAdapter(child: SizedBox(height: 16)),
+
+        // Live Satellite Weather Radar Map
+        if (_weather != null)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: WeatherRadarMapWidget(
+                weather: _weather!,
+                cityName: _weather?.nearestArea.areaName.isNotEmpty == true
+                    ? _weather!.nearestArea.areaName
+                    : _currentCity,
+              ),
+            ),
+          ),
 
         const SliverToBoxAdapter(child: SizedBox(height: 16)),
 

@@ -204,14 +204,19 @@ class _WeatherForecastChartState extends State<WeatherForecastChart> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            'Lúc ${activeItem.formattedTime}: $valueStr',
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
+          Expanded(
+            child: Text(
+              'Lúc ${activeItem.formattedTime}: $valueStr',
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
+          const SizedBox(width: 8),
           Text(
             subStr,
             style: TextStyle(
