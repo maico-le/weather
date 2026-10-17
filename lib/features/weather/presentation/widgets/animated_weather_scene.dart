@@ -95,6 +95,24 @@ class _AnimatedWeatherSceneState extends State<AnimatedWeatherScene>
       );
     }
 
+    if (widget.conditionType == WeatherConditionType.rainy ||
+        widget.conditionType == WeatherConditionType.stormy) {
+      return GestureDetector(
+        onTap: _onTapWeatherScene,
+        child: SizedBox(
+          width: widget.size,
+          height: widget.size,
+          child: Lottie.asset(
+            'assets/animations/rainy_duolingo.json',
+            fit: BoxFit.contain,
+            errorBuilder: (context, error, stackTrace) {
+              return _buildVectorFallback();
+            },
+          ),
+        ),
+      );
+    }
+
     return _buildVectorFallback();
   }
 
