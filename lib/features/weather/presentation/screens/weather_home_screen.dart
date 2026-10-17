@@ -4,6 +4,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/weather_mapper.dart';
 import '../../data/models/weather_model.dart';
 import '../../data/services/ai_advisor_service.dart';
+import '../../data/services/cache_service.dart';
 import '../../data/services/location_service.dart';
 import '../../data/services/weather_api_service.dart';
 import '../widgets/ai_advice_card.dart';
@@ -28,6 +29,7 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
   final WeatherApiService _apiService = WeatherApiService();
   final LocationService _locationService = LocationService();
   final AiAdvisorService _aiService = AiAdvisorService();
+  final CacheService _cacheService = CacheService();
 
   String _currentCity = 'Ho Chi Minh City';
   WeatherResponse? _weather;
@@ -37,29 +39,52 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
   DateTime? _lastUpdated;
 
   String? _aiAdvice;
+  String _aiEngine = 'Gemini 1.5 Flash';
+  bool _isAiOnline = true;
   bool _isLoadingAdvice = false;
 
   @override
   void initState() {
     super.initState();
+    _loadInitialData();
+  }
+
+  // Zero-latency launch from cache, followed by background live refresh
+  Future<void> _loadInitialData() async {
+    final cached = await _cacheService.loadCachedWeather();
+    if (cached != null && mounted) {
+      setState(() {
+        _currentCity = cached.city;
+        _weather = cached.weather;
+        _aiAdvice = cached.aiAdvice;
+        _aiEngine = cached.aiEngine ?? 'Gemini 1.5 Flash';
+        _lastUpdated = cached.updatedAt;
+        _isLoading = false;
+      });
+    }
+
     _fetchWeather();
   }
 
   Future<void> _fetchWeather() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+    if (_weather == null) {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+    }
 
     try {
-      final response = await _apiService.fetchWeather(_currentCity);
+      final result = await _apiService.fetchWeather(_currentCity);
       if (mounted) {
         setState(() {
-          _weather = response;
+          _weather = result.response;
           _isLoading = false;
           _lastUpdated = DateTime.now();
         });
-        _fetchAiAdvice(response);
+
+        // Trigger AI advice in background
+        _fetchAiAdvice(result.response, result.rawJson);
       }
     } catch (e) {
       if (mounted) {
@@ -71,7 +96,7 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
     }
   }
 
-  Future<void> _fetchAiAdvice(WeatherResponse response) async {
+  Future<void> _fetchAiAdvice(WeatherResponse response, [Map<String, dynamic>? rawJson]) async {
     if (!mounted) return;
     setState(() {
       _isLoadingAdvice = true;
@@ -85,7 +110,7 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
         ? response.dailyForecast[0].hourly[0].chanceOfRain
         : 20;
 
-    final advice = await _aiService.getAdvice(
+    final result = await _aiService.getAdvice(
       city: cityName,
       current: response.currentCondition,
       rainChance: rainChance,
@@ -93,9 +118,16 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
 
     if (mounted) {
       setState(() {
-        _aiAdvice = advice;
+        _aiAdvice = result.advice;
+        _aiEngine = result.engine;
+        _isAiOnline = result.isOnline;
         _isLoadingAdvice = false;
       });
+
+      // Save to cache
+      if (rawJson != null) {
+        _cacheService.saveWeather(_currentCity, rawJson, result.advice, result.engine);
+      }
     }
   }
 
@@ -289,7 +321,10 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
           SliverToBoxAdapter(
             child: AiAdviceCard(
               advice: _aiAdvice ?? '',
+              engine: _aiEngine,
+              isOnline: _isAiOnline,
               isLoading: _isLoadingAdvice,
+              onRefresh: () => _fetchAiAdvice(_weather!),
             ),
           ),
 
@@ -351,7 +386,7 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
                     ),
                   const SizedBox(height: 4),
                   const Text(
-                    'Dữ liệu nguồn: wttr.in • Trợ lý AI: Maico Le Server • Lottie & Flutter',
+                    'Dữ liệu nguồn: wttr.in • Trợ lý AI: maico-le-server (Vercel) • Lottie & Flutter',
                     style: TextStyle(
                       fontSize: 11,
                       color: AppColors.textMuted,

@@ -3,12 +3,19 @@ import 'package:http/http.dart' as http;
 import '../../../../core/constants/api_endpoints.dart';
 import '../models/weather_model.dart';
 
+class FetchWeatherResult {
+  final WeatherResponse response;
+  final Map<String, dynamic> rawJson;
+
+  FetchWeatherResult({required this.response, required this.rawJson});
+}
+
 class WeatherApiService {
   final http.Client _client;
 
   WeatherApiService({http.Client? client}) : _client = client ?? http.Client();
 
-  Future<WeatherResponse> fetchWeather(String city) async {
+  Future<FetchWeatherResult> fetchWeather(String city) async {
     final url = Uri.parse(ApiEndpoints.weatherByCity(city));
 
     try {
@@ -21,9 +28,11 @@ class WeatherApiService {
       ).timeout(const Duration(seconds: 12));
 
       if (response.statusCode == 200) {
-        // wttr.in can be UTF-8 encoded
         final decoded = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
-        return WeatherResponse.fromJson(decoded);
+        return FetchWeatherResult(
+          response: WeatherResponse.fromJson(decoded),
+          rawJson: decoded,
+        );
       } else {
         throw Exception('Failed to load weather: HTTP ${response.statusCode}');
       }
