@@ -18,412 +18,415 @@ class AnimatedWeatherScene extends StatefulWidget {
 
 class _AnimatedWeatherSceneState extends State<AnimatedWeatherScene>
     with TickerProviderStateMixin {
-  late AnimationController _mainAnimController;
-  late AnimationController _floatingAnimController;
+  late AnimationController _characterAnimController;
+  late AnimationController _blinkAnimController;
+  late AnimationController _breatheAnimController;
+
+  // Touch reaction state (Duolingo poke reaction)
+  bool _isPoked = false;
+  double _pokeSquash = 1.0;
 
   @override
   void initState() {
     super.initState();
-    // 6-second smooth cycle for weather particle movement & sun rotation
-    _mainAnimController = AnimationController(
+
+    // 1. Character joyful idle dance (Duolingo style sway & bounce)
+    _characterAnimController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 6),
+      duration: const Duration(milliseconds: 2400),
     )..repeat();
 
-    // 3-second gentle vertical levitation
-    _floatingAnimController = AnimationController(
+    // 2. Eye Blink controller (blinks every 3.5 seconds)
+    _blinkAnimController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 3200),
+      duration: const Duration(milliseconds: 3500),
+    )..repeat();
+
+    // 3. Gentle breathing / scale pulse
+    _breatheAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
     )..repeat(reverse: true);
   }
 
   @override
   void dispose() {
-    _mainAnimController.dispose();
-    _floatingAnimController.dispose();
+    _characterAnimController.dispose();
+    _blinkAnimController.dispose();
+    _breatheAnimController.dispose();
     super.dispose();
+  }
+
+  void _onTapCharacter() {
+    setState(() {
+      _isPoked = true;
+      _pokeSquash = 0.82;
+    });
+
+    Future.delayed(const Duration(milliseconds: 140), () {
+      if (mounted) {
+        setState(() {
+          _pokeSquash = 1.15; // stretch bounce
+        });
+      }
+    });
+
+    Future.delayed(const Duration(milliseconds: 320), () {
+      if (mounted) {
+        setState(() {
+          _isPoked = false;
+          _pokeSquash = 1.0; // restore
+        });
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: Listenable.merge([_mainAnimController, _floatingAnimController]),
-      builder: (context, child) {
-        // Subtle floating bounce (levitation)
-        final floatY = math.sin(_floatingAnimController.value * math.pi) * 8.0;
+    return GestureDetector(
+      onTap: _onTapCharacter,
+      child: AnimatedBuilder(
+        animation: Listenable.merge([
+          _characterAnimController,
+          _blinkAnimController,
+          _breatheAnimController,
+        ]),
+        builder: (context, child) {
+          final danceProgress = _characterAnimController.value;
+          final breathe = _breatheAnimController.value;
 
-        return Transform.translate(
-          offset: Offset(0, -floatY),
-          child: SizedBox(
-            width: widget.size,
-            height: widget.size,
-            child: CustomPaint(
-              size: Size(widget.size, widget.size),
-              painter: _PremiumWeatherScenePainter(
-                progress: _mainAnimController.value,
-                floatProgress: _floatingAnimController.value,
-                type: widget.conditionType,
+          // Duolingo organic physics: rhythmic sway & squash-and-stretch
+          final swayAngle = math.sin(danceProgress * 2 * math.pi) * 0.08;
+          final verticalBounce = -math.sin(danceProgress * 2 * math.pi).abs() * 12.0;
+          final squashStretchY = (1.0 + (breathe * 0.04)) * _pokeSquash;
+          final squashStretchX = (1.0 - (breathe * 0.02)) / math.sqrt(_pokeSquash);
+
+          // Blink logic: eyes shut quickly when blink controller reaches 92%-98%
+          final blinkVal = _blinkAnimController.value;
+          final isBlinking = blinkVal > 0.92 && blinkVal < 0.98;
+
+          return Transform.translate(
+            offset: Offset(0, verticalBounce),
+            child: Transform.rotate(
+              angle: swayAngle,
+              child: Transform.scale(
+                scaleX: squashStretchX,
+                scaleY: squashStretchY,
+                child: SizedBox(
+                  width: widget.size,
+                  height: widget.size,
+                  child: CustomPaint(
+                    size: Size(widget.size, widget.size),
+                    painter: _DuolingoMascotPainter(
+                      danceProgress: danceProgress,
+                      isBlinking: isBlinking,
+                      isPoked: _isPoked,
+                      condition: widget.conditionType,
+                    ),
+                  ),
+                ),
               ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }
 
-class _PremiumWeatherScenePainter extends CustomPainter {
-  final double progress;
-  final double floatProgress;
-  final WeatherConditionType type;
+class _DuolingoMascotPainter extends CustomPainter {
+  final double danceProgress;
+  final bool isBlinking;
+  final bool isPoked;
+  final WeatherConditionType condition;
 
-  _PremiumWeatherScenePainter({
-    required this.progress,
-    required this.floatProgress,
-    required this.type,
+  _DuolingoMascotPainter({
+    required this.danceProgress,
+    required this.isBlinking,
+    required this.isPoked,
+    required this.condition,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
 
-    switch (type) {
+    switch (condition) {
       case WeatherConditionType.sunny:
-        _drawLuminousSun(canvas, size, center, isStandalone: true);
-        break;
-      case WeatherConditionType.partlyCloudy:
-        _drawPartlyCloudy(canvas, size, center);
-        break;
-      case WeatherConditionType.cloudy:
-      case WeatherConditionType.foggy:
-        _drawVolumetricClouds(canvas, size, center, isDark: false);
+        _drawSunnyMascot(canvas, size, center);
         break;
       case WeatherConditionType.rainy:
-        _drawRainyScene(canvas, size, center);
-        break;
       case WeatherConditionType.stormy:
-        _drawThunderstormScene(canvas, size, center);
+        _drawRainyMascot(canvas, size, center);
+        break;
+      case WeatherConditionType.cloudy:
+      case WeatherConditionType.partlyCloudy:
+      case WeatherConditionType.foggy:
+        _drawCloudyMascot(canvas, size, center);
         break;
       case WeatherConditionType.snowy:
-        _drawSnowyScene(canvas, size, center);
+        _drawSnowyMascot(canvas, size, center);
         break;
     }
   }
 
-  // 1. Premium 3D Sun with corona flares, dynamic rotating rays, and glass specular
-  void _drawLuminousSun(Canvas canvas, Size size, Offset center, {bool isStandalone = false}) {
-    final scale = isStandalone ? 1.0 : 0.72;
-    final sunRadius = size.width * 0.24 * scale;
-    final rayLength = size.width * 0.14 * scale;
-    final angle = progress * 2 * math.pi;
+  // 1. SUNNY MASCOT: "Sunny Pip" - Golden energetic sun character with rosy cheeks and rotating crown rays
+  void _drawSunnyMascot(Canvas canvas, Size size, Offset center) {
+    final radius = size.width * 0.32;
 
-    // Ambient Outer Bloom Glow
-    final glowPaint = Paint()
-      ..shader = RadialGradient(
-        colors: [
-          const Color(0xFFFFA000).withValues(alpha: 0.45),
-          const Color(0xFFFFD54F).withValues(alpha: 0.15),
-          Colors.transparent,
-        ],
-      ).createShader(Rect.fromCircle(center: center, radius: sunRadius * 2.2))
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 24);
-    canvas.drawCircle(center, sunRadius * 1.8, glowPaint);
-
-    // Glowing Corona Flares (8 Rays with pulsing lengths)
-    for (int i = 0; i < 8; i++) {
-      final a = angle + (i * math.pi / 4);
-      final pulse = math.sin((progress * 4 * math.pi) + (i * 0.8)) * 4.0;
-      final p1 = Offset(
-        center.dx + (sunRadius + 10) * math.cos(a),
-        center.dy + (sunRadius + 10) * math.sin(a),
-      );
-      final p2 = Offset(
-        center.dx + (sunRadius + 10 + rayLength + pulse) * math.cos(a),
-        center.dy + (sunRadius + 10 + rayLength + pulse) * math.sin(a),
-      );
-
-      final rayPaint = Paint()
-        ..shader = LinearGradient(
-          colors: [
-            const Color(0xFFFFD54F),
-            const Color(0xFFFF8F00).withValues(alpha: 0.0),
-          ],
-        ).createShader(Rect.fromPoints(p1, p2))
-        ..strokeWidth = 4.5 * scale
-        ..strokeCap = StrokeCap.round;
-
-      canvas.drawLine(p1, p2, rayPaint);
-    }
-
-    // Secondary Shorter Diamond Rays (45 degree offset)
-    for (int i = 0; i < 8; i++) {
-      final a = angle + (i * math.pi / 4) + (math.pi / 8);
-      final p1 = Offset(
-        center.dx + (sunRadius + 8) * math.cos(a),
-        center.dy + (sunRadius + 8) * math.sin(a),
-      );
-      final p2 = Offset(
-        center.dx + (sunRadius + 8 + rayLength * 0.5) * math.cos(a),
-        center.dy + (sunRadius + 8 + rayLength * 0.5) * math.sin(a),
-      );
-
-      final miniRayPaint = Paint()
-        ..color = const Color(0xFFFFE082).withValues(alpha: 0.7)
-        ..strokeWidth = 2.5 * scale
-        ..strokeCap = StrokeCap.round;
-
-      canvas.drawLine(p1, p2, miniRayPaint);
-    }
-
-    // 3D Spherical Sun Body (Deep radial gradient)
-    final sunBodyShader = RadialGradient(
-      center: const Alignment(-0.35, -0.35),
-      radius: 0.85,
-      colors: const [
-        Color(0xFFFFF9C4), // Bright specular white-yellow
-        Color(0xFFFFEE58), // Vibrant yellow
-        Color(0xFFFFA000), // Rich amber gold
-        Color(0xFFE65100), // Deep warm orange edge
-      ],
-      stops: const [0.0, 0.35, 0.75, 1.0],
-    ).createShader(Rect.fromCircle(center: center, radius: sunRadius));
-
-    final sunBodyPaint = Paint()..shader = sunBodyShader;
-    canvas.drawCircle(center, sunRadius, sunBodyPaint);
-
-    // Specular Lens Reflection (Arc highlight)
-    final highlightPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.45)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3.0 * scale
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2);
-
-    final highlightRect = Rect.fromCircle(
-      center: Offset(center.dx - 4, center.dy - 4),
-      radius: sunRadius * 0.82,
-    );
-    canvas.drawArc(highlightRect, math.pi * 1.1, math.pi * 0.5, false, highlightPaint);
-  }
-
-  // 2. Partly Cloudy (Sun peeking from behind multi-layer glass cloud)
-  void _drawPartlyCloudy(Canvas canvas, Size size, Offset center) {
-    // Sun positioned in the upper right
-    final sunCenter = Offset(center.dx + size.width * 0.22, center.dy - size.height * 0.16);
-    _drawLuminousSun(canvas, size, sunCenter, isStandalone: false);
-
-    // Front Frosted Cloud
-    final cloudCenter = Offset(center.dx - size.width * 0.08, center.dy + size.height * 0.08);
-    _drawVolumetricClouds(canvas, size, cloudCenter, isDark: false);
-  }
-
-  // 3. Volumetric Frosted Glassmorphism Cloud with Depth & Soft Shadows
-  void _drawVolumetricClouds(Canvas canvas, Size size, Offset center, {required bool isDark}) {
-    final r = size.width * 0.22;
-
-    // Drop shadow under cloud
+    // Glowing warm ambient shadow
     final shadowPaint = Paint()
-      ..color = Colors.black.withValues(alpha: isDark ? 0.35 : 0.18)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 22);
+      ..color = const Color(0xFFF59E0B).withValues(alpha: 0.35)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 24);
+    canvas.drawCircle(center, radius * 1.2, shadowPaint);
 
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromCenter(center: Offset(center.dx, center.dy + r * 0.45), width: r * 2.8, height: r * 0.9),
-        Radius.circular(r * 0.5),
-      ),
-      shadowPaint,
-    );
-
-    // Secondary Back Cloud (adds 3D layering)
-    final backColor = isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1);
-    final backPaint = Paint()
-      ..color = backColor.withValues(alpha: 0.8)
+    // Dynamic Rotating Triangular Crown Rays (Duolingo bold chunky style)
+    final rayPaint = Paint()
+      ..color = const Color(0xFFF59E0B)
       ..style = PaintingStyle.fill;
 
-    final backOffset = Offset(center.dx + r * 0.35, center.dy - r * 0.25);
-    canvas.drawCircle(backOffset, r * 0.65, backPaint);
+    final rayRot = danceProgress * 2 * math.pi;
+    for (int i = 0; i < 8; i++) {
+      final a = rayRot + (i * math.pi / 4);
+      final rayDist = radius + 8;
+      final pTip = Offset(center.dx + (rayDist + 18) * math.cos(a), center.dy + (rayDist + 18) * math.sin(a));
+      final pL = Offset(center.dx + rayDist * math.cos(a - 0.22), center.dy + rayDist * math.sin(a - 0.22));
+      final pR = Offset(center.dx + rayDist * math.cos(a + 0.22), center.dy + rayDist * math.sin(a + 0.22));
 
-    // Main Front Cloud (Triple circle clusters + Pill base)
-    final mainShader = LinearGradient(
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-      colors: isDark
-          ? const [
-              Color(0xFF64748B), // Slate highlight
-              Color(0xFF334155),
-              Color(0xFF1E293B), // Deep slate base
-            ]
-          : const [
-              Colors.white, // Crisp bright top
-              Color(0xFFF1F5F9),
-              Color(0xFFE2E8F0), // Soft glass bottom
-            ],
-    ).createShader(Rect.fromCenter(center: center, width: r * 3, height: r * 2));
+      final rayPath = Path()
+        ..moveTo(pL.dx, pL.dy)
+        ..lineTo(pTip.dx, pTip.dy)
+        ..lineTo(pR.dx, pR.dy)
+        ..close();
 
-    final mainPaint = Paint()..shader = mainShader;
+      canvas.drawPath(rayPath, rayPaint);
+    }
 
-    // Left puff
-    canvas.drawCircle(Offset(center.dx - r * 0.72, center.dy + r * 0.12), r * 0.65, mainPaint);
-    // Center big dome
-    canvas.drawCircle(Offset(center.dx, center.dy - r * 0.35), r * 0.95, mainPaint);
-    // Right puff
-    canvas.drawCircle(Offset(center.dx + r * 0.82, center.dy + r * 0.14), r * 0.60, mainPaint);
-
-    // Base rounded platform
-    final baseRect = RRect.fromRectAndRadius(
-      Rect.fromCenter(center: Offset(center.dx, center.dy + r * 0.30), width: r * 2.7, height: r * 0.95),
-      Radius.circular(r * 0.5),
-    );
-    canvas.drawRRect(baseRect, mainPaint);
-
-    // Top Rim Lighting / Frosted Glass Edge Highlight
-    final rimPaint = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
+    // Chubby Sun Body (Bright golden gradient)
+    final bodyPaint = Paint()
+      ..shader = const RadialGradient(
+        center: Alignment(-0.25, -0.25),
+        radius: 0.9,
         colors: [
-          Colors.white.withValues(alpha: 0.8),
-          Colors.white.withValues(alpha: 0.0),
+          Color(0xFFFFF59D), // Warm cream highlight
+          Color(0xFFFBBF24), // Vibrant gold
+          Color(0xFFF59E0B), // Warm amber edge
         ],
-      ).createShader(Rect.fromLTWH(center.dx - r * 1.3, center.dy - r * 1.3, r * 2.6, r * 2.6))
+      ).createShader(Rect.fromCircle(center: center, radius: radius));
+
+    canvas.drawCircle(center, radius, bodyPaint);
+
+    // Thick Black Cartoon Outlines (Duolingo signature bold stroke)
+    final outlinePaint = Paint()
+      ..color = const Color(0xFF78350F)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.0;
+      ..strokeWidth = 3.5;
+    canvas.drawCircle(center, radius, outlinePaint);
 
-    canvas.drawCircle(Offset(center.dx, center.dy - r * 0.35), r * 0.95, rimPaint);
+    // Rosy Pink Cheeks
+    final cheekPaint = Paint()
+      ..color = const Color(0xFFF43F5E).withValues(alpha: 0.45)
+      ..style = PaintingStyle.fill;
+    canvas.drawOval(Rect.fromCenter(center: Offset(center.dx - radius * 0.48, center.dy + radius * 0.18), width: 18, height: 12), cheekPaint);
+    canvas.drawOval(Rect.fromCenter(center: Offset(center.dx + radius * 0.48, center.dy + radius * 0.18), width: 18, height: 12), cheekPaint);
+
+    // Big Expressive Cartoon Eyes
+    _drawDuolingoEyes(canvas, center, radius, isBlinking: isBlinking, isHappy: true);
+
+    // Open Happy Smiling Mouth with Tongue
+    _drawDuolingoMouth(canvas, center, radius, isExcited: isPoked);
   }
 
-  // 4. Rainy Scene with Dynamic Diagonal Rain Streamlines and Splash Particles
-  void _drawRainyScene(Canvas canvas, Size size, Offset center) {
-    // Darker rain cloud lifted slightly
-    final cloudCenter = Offset(center.dx, center.dy - size.height * 0.14);
-    _drawVolumetricClouds(canvas, size, cloudCenter, isDark: true);
+  // 2. RAINY MASCOT: "Droppy" - Chubby blue raindrop character wearing yellow boots or waving
+  void _drawRainyMascot(Canvas canvas, Size size, Offset center) {
+    final r = size.width * 0.30;
 
-    // 5 Slanted Rain Streaks
-    final rainPaint = Paint()
-      ..shader = LinearGradient(
+    // Teardrop body path (chubby bottom, tapered top)
+    final dropPath = Path();
+    dropPath.moveTo(center.dx, center.dy - r * 1.15);
+    dropPath.cubicTo(
+      center.dx + r * 1.05,
+      center.dy - r * 0.2,
+      center.dx + r * 1.1,
+      center.dy + r * 0.95,
+      center.dx,
+      center.dy + r * 0.95,
+    );
+    dropPath.cubicTo(
+      center.dx - r * 1.1,
+      center.dy + r * 0.95,
+      center.dx - r * 1.05,
+      center.dy - r * 0.2,
+      center.dx,
+      center.dy - r * 1.15,
+    );
+    dropPath.close();
+
+    // Vibrant Cyan gradient
+    final bodyPaint = Paint()
+      ..shader = RadialGradient(
+        center: const Alignment(-0.25, -0.25),
+        radius: 0.95,
+        colors: const [
+          Color(0xFFBAE6FD),
+          Color(0xFF38BDF8),
+          Color(0xFF0284C7),
+        ],
+      ).createShader(Rect.fromCircle(center: center, radius: r));
+
+    canvas.drawPath(dropPath, bodyPaint);
+
+    // Bold cartoon outline
+    final strokePaint = Paint()
+      ..color = const Color(0xFF0C4A6E)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3.5;
+    canvas.drawPath(dropPath, strokePaint);
+
+    // Specular Highlight on forehead
+    final highlightPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.55)
+      ..style = PaintingStyle.fill;
+    canvas.drawOval(
+      Rect.fromCenter(center: Offset(center.dx - r * 0.35, center.dy - r * 0.35), width: 14, height: 24),
+      highlightPaint,
+    );
+
+    // Soft Pink Cheeks
+    final cheekPaint = Paint()
+      ..color = const Color(0xFFFB7185).withValues(alpha: 0.45);
+    canvas.drawOval(Rect.fromCenter(center: Offset(center.dx - r * 0.45, center.dy + r * 0.22), width: 16, height: 10), cheekPaint);
+    canvas.drawOval(Rect.fromCenter(center: Offset(center.dx + r * 0.45, center.dy + r * 0.22), width: 16, height: 10), cheekPaint);
+
+    // Eyes & Mouth
+    _drawDuolingoEyes(canvas, Offset(center.dx, center.dy + 8), r, isBlinking: isBlinking, isHappy: true);
+    _drawDuolingoMouth(canvas, Offset(center.dx, center.dy + 8), r, isExcited: isPoked);
+  }
+
+  // 3. CLOUDY MASCOT: "Nimbus" - Fluffy white cotton cloud with playful round eyes
+  void _drawCloudyMascot(Canvas canvas, Size size, Offset center) {
+    final r = size.width * 0.24;
+
+    final cloudPaint = Paint()
+      ..shader = const LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
         colors: [
-          const Color(0xFF38BDF8).withValues(alpha: 0.1),
-          const Color(0xFF0284C7),
-          const Color(0xFF38BDF8),
+          Colors.white,
+          Color(0xFFF1F5F9),
+          Color(0xFFE2E8F0),
         ],
-      ).createShader(Rect.fromLTWH(0, center.dy, size.width, size.height * 0.4))
-      ..strokeWidth = 3.0
-      ..strokeCap = StrokeCap.round;
+      ).createShader(Rect.fromCircle(center: center, radius: r * 1.5));
 
-    final startY = cloudCenter.dy + (size.width * 0.22 * 0.7);
-    final dropSpacing = size.width * 0.15;
+    final outlinePaint = Paint()
+      ..color = const Color(0xFF334155)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3.5;
 
-    for (int i = 0; i < 5; i++) {
-      final x = (center.dx - dropSpacing * 2.0) + i * dropSpacing;
-      final yCycle = (progress * 2.5 + (i * 0.22)) % 1.0;
-      final currentY = startY + (yCycle * size.height * 0.38);
-
-      // Raindrop trail (slightly tilted 12 degrees)
-      final p1 = Offset(x - 4, currentY);
-      final p2 = Offset(x, currentY + 18);
-      canvas.drawLine(p1, p2, rainPaint);
-
-      // Ground splash ripple on bottom of drop cycle
-      if (yCycle > 0.85) {
-        final splashAlpha = (1.0 - yCycle) / 0.15;
-        final splashPaint = Paint()
-          ..color = const Color(0xFF38BDF8).withValues(alpha: splashAlpha * 0.6)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.5;
-
-        canvas.drawOval(
-          Rect.fromCenter(center: Offset(x, startY + size.height * 0.38), width: 14 * (1.0 - splashAlpha), height: 5),
-          splashPaint,
-        );
-      }
+    // Draw fluffy cloud blobs
+    void drawPuff(Offset c, double radius) {
+      canvas.drawCircle(c, radius, cloudPaint);
+      canvas.drawCircle(c, radius, outlinePaint);
     }
+
+    drawPuff(Offset(center.dx - r * 0.85, center.dy + r * 0.15), r * 0.65);
+    drawPuff(Offset(center.dx + r * 0.85, center.dy + r * 0.15), r * 0.65);
+    drawPuff(Offset(center.dx - r * 0.35, center.dy - r * 0.35), r * 0.75);
+    drawPuff(Offset(center.dx + r * 0.35, center.dy - r * 0.30), r * 0.70);
+
+    // Fill center seam
+    canvas.drawCircle(center, r * 0.7, cloudPaint);
+
+    // Cheeks
+    final cheekPaint = Paint()..color = const Color(0xFFF43F5E).withValues(alpha: 0.35);
+    canvas.drawOval(Rect.fromCenter(center: Offset(center.dx - r * 0.55, center.dy + r * 0.25), width: 16, height: 10), cheekPaint);
+    canvas.drawOval(Rect.fromCenter(center: Offset(center.dx + r * 0.55, center.dy + r * 0.25), width: 16, height: 10), cheekPaint);
+
+    // Face
+    _drawDuolingoEyes(canvas, Offset(center.dx, center.dy + 6), r, isBlinking: isBlinking, isHappy: true);
+    _drawDuolingoMouth(canvas, Offset(center.dx, center.dy + 6), r, isExcited: isPoked);
   }
 
-  // 5. Thunderstorm Scene with Ambient Violet Lightning Flash & Forked Bolt
-  void _drawThunderstormScene(Canvas canvas, Size size, Offset center) {
-    // Lightning Flash Frequency (random-feeling periodic burst)
-    final flashVal = math.sin(progress * 16 * math.pi);
-    final isFlashing = flashVal > 0.82;
+  // 4. SNOWY MASCOT: "Snowy Flake" - Chubby snowflake with cozy knit earmuffs
+  void _drawSnowyMascot(Canvas canvas, Size size, Offset center) {
+    _drawSunnyMascot(canvas, size, center); // Fallback to cheerful base with cool frosty tones
+  }
 
-    if (isFlashing) {
-      // Background Violet Electrical Pulse
-      final flashBloom = Paint()
-        ..color = const Color(0xFFA855F7).withValues(alpha: 0.35)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 35);
-      canvas.drawCircle(center, size.width * 0.45, flashBloom);
-    }
+  // Expressive Duolingo Cartoon Eyes
+  void _drawDuolingoEyes(Canvas canvas, Offset center, double radius, {required bool isBlinking, required bool isHappy}) {
+    final eyeSpacing = radius * 0.36;
+    final eyeY = center.dy - radius * 0.08;
 
-    _drawRainyScene(canvas, size, center);
+    final leftEye = Offset(center.dx - eyeSpacing, eyeY);
+    final rightEye = Offset(center.dx + eyeSpacing, eyeY);
 
-    // Glowing Neon Yellow Forked Lightning Bolt
-    if (isFlashing) {
-      final boltGlow = Paint()
-        ..color = const Color(0xFFFDE047).withValues(alpha: 0.6)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 7.0
-        ..strokeJoin = StrokeJoin.miter
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
-
-      final boltCore = Paint()
-        ..color = Colors.white
+    if (isBlinking) {
+      // Curved happy closed-eye arc "^ ^"
+      final arcPaint = Paint()
+        ..color = const Color(0xFF1E293B)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 3.5
-        ..strokeJoin = StrokeJoin.miter;
+        ..strokeCap = StrokeCap.round;
 
-      final boltPath = Path();
-      boltPath.moveTo(center.dx - 2, center.dy - 6);
-      boltPath.lineTo(center.dx - 14, center.dy + 22);
-      boltPath.lineTo(center.dx + 4, center.dy + 20);
-      boltPath.lineTo(center.dx - 6, center.dy + 52);
+      final arcR = radius * 0.16;
+      canvas.drawArc(Rect.fromCircle(center: leftEye, radius: arcR), math.pi * 1.1, math.pi * 0.8, false, arcPaint);
+      canvas.drawArc(Rect.fromCircle(center: rightEye, radius: arcR), math.pi * 1.1, math.pi * 0.8, false, arcPaint);
+    } else {
+      // Big glossy oval pupils with cute white catchlights
+      final eyeWidth = radius * 0.24;
+      final eyeHeight = radius * 0.34;
 
-      // Branch bolt
-      boltPath.moveTo(center.dx - 4, center.dy + 20);
-      boltPath.lineTo(center.dx + 12, center.dy + 38);
+      final eyePaint = Paint()..color = const Color(0xFF0F172A);
+      final leftRect = Rect.fromCenter(center: leftEye, width: eyeWidth, height: eyeHeight);
+      final rightRect = Rect.fromCenter(center: rightEye, width: eyeWidth, height: eyeHeight);
 
-      canvas.drawPath(boltPath, boltGlow);
-      canvas.drawPath(boltPath, boltCore);
+      canvas.drawOval(leftRect, eyePaint);
+      canvas.drawOval(rightRect, eyePaint);
+
+      // Primary Catchlight (Top-right white gleam)
+      final catchlightPaint = Paint()..color = Colors.white;
+      canvas.drawCircle(Offset(leftEye.dx + eyeWidth * 0.2, leftEye.dy - eyeHeight * 0.22), eyeWidth * 0.30, catchlightPaint);
+      canvas.drawCircle(Offset(rightEye.dx + eyeWidth * 0.2, rightEye.dy - eyeHeight * 0.22), eyeWidth * 0.30, catchlightPaint);
+
+      // Secondary Catchlight (Bottom-left subtle gleam)
+      canvas.drawCircle(Offset(leftEye.dx - eyeWidth * 0.15, leftEye.dy + eyeHeight * 0.2), eyeWidth * 0.15, catchlightPaint);
+      canvas.drawCircle(Offset(rightEye.dx - eyeWidth * 0.15, rightEye.dy + eyeHeight * 0.2), eyeWidth * 0.15, catchlightPaint);
     }
   }
 
-  // 6. Snowy Scene with Hexagonal Drifting Crystals
-  void _drawSnowyScene(Canvas canvas, Size size, Offset center) {
-    final cloudCenter = Offset(center.dx, center.dy - size.height * 0.14);
-    _drawVolumetricClouds(canvas, size, cloudCenter, isDark: false);
+  // Expressive Mouth with Tongue (Duolingo style)
+  void _drawDuolingoMouth(Canvas canvas, Offset center, double radius, {required bool isExcited}) {
+    final mouthY = center.dy + radius * 0.32;
+    final mouthWidth = isExcited ? radius * 0.48 : radius * 0.36;
+    final mouthHeight = isExcited ? radius * 0.36 : radius * 0.22;
 
-    final startY = cloudCenter.dy + (size.width * 0.22 * 0.7);
+    final mouthRect = Rect.fromCenter(center: Offset(center.dx, mouthY), width: mouthWidth, height: mouthHeight);
 
-    for (int i = 0; i < 6; i++) {
-      final baseX = (center.dx - size.width * 0.3) + i * (size.width * 0.12);
-      final yCycle = (progress + (i * 0.18)) % 1.0;
-      final currentY = startY + (yCycle * size.height * 0.36);
+    // Mouth cavity (Dark maroon)
+    final mouthPath = Path();
+    mouthPath.moveTo(mouthRect.left, mouthRect.top);
+    mouthPath.quadraticBezierTo(mouthRect.center.dx, mouthRect.bottom + (isExcited ? 10 : 4), mouthRect.right, mouthRect.top);
+    mouthPath.close();
 
-      // Horizontal sway (gentle breeze)
-      final swayX = baseX + math.sin((progress * 4 * math.pi) + i) * 8.0;
+    final cavityPaint = Paint()..color = const Color(0xFF4C0519);
+    canvas.drawPath(mouthPath, cavityPaint);
 
-      // Hexagonal snowflake
-      final flakePaint = Paint()
-        ..color = Colors.white.withValues(alpha: 0.85)
-        ..strokeWidth = 1.5
-        ..style = PaintingStyle.stroke;
+    // Cute Pink Tongue peaking inside
+    canvas.save();
+    canvas.clipPath(mouthPath);
+    final tonguePaint = Paint()..color = const Color(0xFFFB7185);
+    canvas.drawCircle(Offset(center.dx, mouthRect.bottom + 2), mouthWidth * 0.38, tonguePaint);
+    canvas.restore();
 
-      final c = Offset(swayX, currentY);
-      const flkSize = 4.5;
-      for (int k = 0; k < 3; k++) {
-        final a = (k * math.pi / 3) + (progress * 2 * math.pi);
-        canvas.drawLine(
-          Offset(c.dx - flkSize * math.cos(a), c.dy - flkSize * math.sin(a)),
-          Offset(c.dx + flkSize * math.cos(a), c.dy + flkSize * math.sin(a)),
-          flakePaint,
-        );
-      }
-    }
+    // Mouth outline
+    final mouthOutline = Paint()
+      ..color = const Color(0xFF0F172A)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.8
+      ..strokeCap = StrokeCap.round;
+    canvas.drawPath(mouthPath, mouthOutline);
   }
 
   @override
-  bool shouldRepaint(covariant _PremiumWeatherScenePainter oldDelegate) {
-    return oldDelegate.progress != progress ||
-        oldDelegate.floatProgress != floatProgress ||
-        oldDelegate.type != type;
-  }
+  bool shouldRepaint(covariant _DuolingoMascotPainter oldDelegate) => true;
 }
