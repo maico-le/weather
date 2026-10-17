@@ -23,6 +23,7 @@ import '../widgets/weather_alert_banner.dart';
 import '../widgets/weather_forecast_chart.dart';
 import '../widgets/weather_metrics_grid.dart';
 import '../widgets/weather_radar_map_widget.dart';
+import '../widgets/weather_story_share_sheet.dart';
 import 'settings_screen.dart';
 
 class WeatherHomeScreen extends StatefulWidget {
@@ -334,6 +335,20 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
     );
   }
 
+  void _openStoryShare() {
+    if (_weather == null) return;
+    HapticFeedback.lightImpact();
+    final displayCity = _weather!.nearestArea.areaName.isNotEmpty
+        ? _weather!.nearestArea.areaName
+        : _currentCity;
+    WeatherStoryShareSheet.show(
+      context,
+      weather: _weather!,
+      cityName: displayCity,
+      aiAdvice: _aiAdvice ?? '',
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final conditionType = _weather != null
@@ -394,43 +409,53 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           // City selector button
-          GestureDetector(
-            onTap: _openCityManager,
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.location_on_rounded,
-                  color: Colors.white,
-                  size: 22,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  _weather?.nearestArea.areaName.isNotEmpty == true
-                      ? _weather!.nearestArea.areaName
-                      : _currentCity,
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
+          Expanded(
+            child: GestureDetector(
+              onTap: _openCityManager,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.location_on_rounded,
+                    color: Colors.white,
+                    size: 20,
                   ),
-                ),
-                const SizedBox(width: 6),
-                const Icon(
-                  Icons.keyboard_arrow_down_rounded,
-                  color: AppColors.textSecondary,
-                  size: 20,
-                ),
-              ],
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      _weather?.nearestArea.areaName.isNotEmpty == true
+                          ? _weather!.nearestArea.areaName
+                          : _currentCity,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  const Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    color: AppColors.textSecondary,
+                    size: 18,
+                  ),
+                ],
+              ),
             ),
           ),
-          // Action Buttons (GPS & Search & Settings)
+          const SizedBox(width: 8),
+          // Action Buttons (GPS & Search & Share & Settings)
           Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
               IconButton(
                 tooltip: 'Định vị GPS',
                 onPressed: _isLocating ? null : _detectGPSLocation,
                 style: IconButton.styleFrom(
                   backgroundColor: Colors.white.withValues(alpha: 0.12),
+                  padding: const EdgeInsets.all(8),
                 ),
                 icon: _isLocating
                     ? const SizedBox(
@@ -438,34 +463,37 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
                         height: 18,
                         child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                       )
-                    : const Icon(Icons.my_location_rounded, color: Colors.white, size: 20),
+                    : const Icon(Icons.my_location_rounded, color: Colors.white, size: 18),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               IconButton(
                 tooltip: 'Tìm kiếm thành phố',
                 onPressed: _openCitySearch,
                 style: IconButton.styleFrom(
                   backgroundColor: Colors.white.withValues(alpha: 0.12),
+                  padding: const EdgeInsets.all(8),
                 ),
-                icon: const Icon(Icons.search_rounded, color: Colors.white, size: 20),
+                icon: const Icon(Icons.search_rounded, color: Colors.white, size: 18),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               IconButton(
-                tooltip: 'Danh sách thành phố',
-                onPressed: _openCityManager,
+                tooltip: 'Chia sẻ Story thời tiết',
+                onPressed: _weather == null ? null : _openStoryShare,
                 style: IconButton.styleFrom(
-                  backgroundColor: Colors.white.withValues(alpha: 0.12),
+                  backgroundColor: const Color(0xFF38BDF8).withValues(alpha: 0.25),
+                  padding: const EdgeInsets.all(8),
                 ),
-                icon: const Icon(Icons.view_carousel_rounded, color: Colors.white, size: 20),
+                icon: const Icon(Icons.ios_share_rounded, color: Color(0xFF38BDF8), size: 18),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               IconButton(
                 tooltip: 'Cài đặt & Thông báo',
                 onPressed: _openSettings,
                 style: IconButton.styleFrom(
                   backgroundColor: Colors.white.withValues(alpha: 0.12),
+                  padding: const EdgeInsets.all(8),
                 ),
-                icon: const Icon(Icons.settings_outlined, color: Colors.white, size: 20),
+                icon: const Icon(Icons.settings_outlined, color: Colors.white, size: 18),
               ),
             ],
           ),
