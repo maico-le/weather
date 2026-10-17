@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../data/models/weather_model.dart';
 import 'glass_card.dart';
@@ -145,6 +146,7 @@ class _WeatherForecastChartState extends State<WeatherForecastChart> {
     final isSelected = _selectedMetric == type;
     return GestureDetector(
       onTap: () {
+        HapticFeedback.selectionClick();
         setState(() {
           _selectedMetric = type;
           _hoveredIndex = null;
@@ -240,9 +242,12 @@ class _WeatherForecastChartState extends State<WeatherForecastChart> {
     int index = (localPosition.dx / step).round();
     index = index.clamp(0, count - 1);
 
-    setState(() {
-      _hoveredIndex = index;
-    });
+    if (_hoveredIndex != index) {
+      HapticFeedback.selectionClick();
+      setState(() {
+        _hoveredIndex = index;
+      });
+    }
   }
 
   Color _getMetricColor(ChartMetricType type) {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../data/services/city_manager_service.dart';
 import 'glass_card.dart';
@@ -145,10 +146,12 @@ class _CityManagerSheetState extends State<CityManagerSheet> {
             child: const Icon(Icons.delete_outline, color: Colors.white),
           ),
           onDismissed: (_) {
+            HapticFeedback.mediumImpact();
             widget.onDeleteCity(city.id);
           },
           child: GestureDetector(
             onTap: () {
+              HapticFeedback.selectionClick();
               widget.onSelectCity(index);
               Navigator.of(context).pop();
             },
@@ -306,6 +309,7 @@ class _CityManagerSheetState extends State<CityManagerSheet> {
                       : IconButton(
                           icon: const Icon(Icons.add_circle_outline, color: Color(0xFF38BDF8)),
                           onPressed: () {
+                            HapticFeedback.lightImpact();
                             widget.onAddCity(
                               SavedCity(
                                 id: DateTime.now().millisecondsSinceEpoch.toString(),

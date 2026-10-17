@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/weather_mapper.dart';
@@ -234,6 +235,7 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
 
   void _onSwitchCity(int index) {
     if (index >= 0 && index < _savedCities.length) {
+      HapticFeedback.selectionClick();
       setState(() {
         _activeCityIndex = index;
         _currentCity = _savedCities[index].name;
@@ -355,6 +357,7 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
                   itemCount: _savedCities.isNotEmpty ? _savedCities.length : 1,
                   onPageChanged: (page) {
                     if (page != _activeCityIndex && page < _savedCities.length) {
+                      HapticFeedback.lightImpact();
                       setState(() {
                         _activeCityIndex = page;
                         _currentCity = _savedCities[page].name;
@@ -366,7 +369,10 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
                   },
                   itemBuilder: (context, index) {
                     return RefreshIndicator(
-                      onRefresh: _fetchWeather,
+                      onRefresh: () async {
+                        HapticFeedback.mediumImpact();
+                        await _fetchWeather();
+                      },
                       color: const Color(0xFF38BDF8),
                       backgroundColor: const Color(0xFF1E293B),
                       child: _buildBody(),
