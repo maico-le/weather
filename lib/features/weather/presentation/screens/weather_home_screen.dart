@@ -5,9 +5,12 @@ import '../../../../core/utils/weather_mapper.dart';
 import '../../data/models/weather_model.dart';
 import '../../data/services/ai_advisor_service.dart';
 import '../../data/services/cache_service.dart';
+import '../../data/services/city_manager_service.dart';
 import '../../data/services/location_service.dart';
+import '../../data/services/native_widget_service.dart';
 import '../../data/services/weather_api_service.dart';
 import '../widgets/ai_advice_card.dart';
+import '../widgets/city_manager_sheet.dart';
 import '../widgets/city_search_sheet.dart';
 import '../widgets/current_weather_hero.dart';
 import '../widgets/daily_forecast_list.dart';
@@ -16,6 +19,7 @@ import '../widgets/home_widget_preview.dart';
 import '../widgets/hourly_forecast_list.dart';
 import '../widgets/interactive_weather_sky.dart';
 import '../widgets/weather_alert_banner.dart';
+import '../widgets/weather_forecast_chart.dart';
 import '../widgets/weather_metrics_grid.dart';
 import 'settings_screen.dart';
 
@@ -31,6 +35,11 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
   final LocationService _locationService = LocationService();
   final AiAdvisorService _aiService = AiAdvisorService();
   final CacheService _cacheService = CacheService();
+  final CityManagerService _cityManager = CityManagerService();
+
+  List<SavedCity> _savedCities = [];
+  int _activeCityIndex = 0;
+  PageController _pageController = PageController();
 
   String _currentCity = 'Ho Chi Minh City';
   WeatherResponse? _weather;
@@ -40,7 +49,7 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
   DateTime? _lastUpdated;
 
   String? _aiAdvice;
-  String _aiEngine = 'Gemini 1.5 Flash';
+  String _aiEngine = 'Gemini 2.5 Flash';
   bool _isAiOnline = true;
   bool _isLoadingAdvice = false;
 
@@ -50,15 +59,33 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
     _loadInitialData();
   }
 
-  // Zero-latency launch from cache, followed by background live refresh
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadInitialData() async {
+    final cities = await _cityManager.getSavedCities();
+    final savedIndex = await _cityManager.getActiveIndex();
+    final activeIdx = (savedIndex < cities.length) ? savedIndex : 0;
+
+    _pageController = PageController(initialPage: activeIdx);
+
+    setState(() {
+      _savedCities = cities;
+      _activeCityIndex = activeIdx;
+      if (cities.isNotEmpty) {
+        _currentCity = cities[activeIdx].name;
+      }
+    });
+
     final cached = await _cacheService.loadCachedWeather();
-    if (cached != null && mounted) {
+    if (cached != null && mounted && cached.city == _currentCity) {
       setState(() {
-        _currentCity = cached.city;
         _weather = cached.weather;
         _aiAdvice = cached.aiAdvice;
-        _aiEngine = cached.aiEngine ?? 'Gemini 1.5 Flash';
+        _aiEngine = cached.aiEngine ?? 'Gemini 2.5 Flash';
         _lastUpdated = cached.updatedAt;
         _isLoading = false;
       });
@@ -86,6 +113,15 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
 
         // Trigger AI advice in background
         _fetchAiAdvice(result.response, result.rawJson);
+
+        // Sync with Native Android Home Screen Widget
+        NativeWidgetService.updateWidgetData(
+          cityName: result.response.nearestArea.areaName.isNotEmpty
+              ? result.response.nearestArea.areaName
+              : _currentCity,
+          current: result.response.currentCondition,
+          aiSummary: _aiAdvice ?? 'Thời tiết thuận lợi cho các hoạt động thường ngày.',
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -129,6 +165,13 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
       if (rawJson != null) {
         _cacheService.saveWeather(_currentCity, rawJson, result.advice, result.engine);
       }
+
+      // Update widget with new AI advice
+      NativeWidgetService.updateWidgetData(
+        cityName: cityName,
+        current: response.currentCondition,
+        aiSummary: result.advice,
+      );
     }
   }
 
@@ -145,15 +188,29 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
     });
 
     if (loc != null) {
-      _onCityChanged(loc);
+      await _cityManager.updateGpsCityName(loc);
+      final cities = await _cityManager.getSavedCities();
+      final gpsIdx = cities.indexWhere((c) => c.isGps);
+      setState(() {
+        _savedCities = cities;
+      });
+
+      if (!mounted) return;
+      if (gpsIdx != -1) {
+        _onSwitchCity(gpsIdx);
+      } else {
+        _onCityChanged(loc);
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Đã cập nhật thời tiết theo tọa độ GPS hiện tại!'),
+          content: Text('Đã cập nhật vị trí GPS thành công!'),
           behavior: SnackBarBehavior.floating,
           duration: Duration(seconds: 2),
         ),
       );
     } else {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Không thể lấy vị trí GPS. Vui lòng bật định vị.'),
@@ -168,9 +225,66 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
     if (newCity != _currentCity) {
       setState(() {
         _currentCity = newCity;
+        _weather = null; // show loader
       });
       _fetchWeather();
     }
+  }
+
+  void _onSwitchCity(int index) {
+    if (index >= 0 && index < _savedCities.length) {
+      setState(() {
+        _activeCityIndex = index;
+        _currentCity = _savedCities[index].name;
+        _weather = null;
+      });
+      _cityManager.setActiveIndex(index);
+      if (_pageController.hasClients) {
+        _pageController.animateToPage(
+          index,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
+      }
+      _fetchWeather();
+    }
+  }
+
+  void _openCityManager() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => CityManagerSheet(
+        savedCities: _savedCities,
+        activeIndex: _activeCityIndex,
+        onSelectCity: _onSwitchCity,
+        onAddCity: (newCity) async {
+          await _cityManager.addCity(newCity);
+          final updated = await _cityManager.getSavedCities();
+          setState(() {
+            _savedCities = updated;
+          });
+          final newIdx = updated.indexWhere((c) => c.name.toLowerCase() == newCity.name.toLowerCase());
+          if (newIdx != -1) {
+            _onSwitchCity(newIdx);
+          }
+        },
+        onDeleteCity: (id) async {
+          await _cityManager.removeCity(id);
+          final updated = await _cityManager.getSavedCities();
+          setState(() {
+            _savedCities = updated;
+            if (_activeCityIndex >= updated.length) {
+              _activeCityIndex = 0;
+            }
+          });
+          if (updated.isNotEmpty) {
+            _onSwitchCity(_activeCityIndex);
+          }
+        },
+      ),
+    );
   }
 
   void _openCitySearch() {
@@ -180,7 +294,25 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
       backgroundColor: Colors.transparent,
       builder: (context) => CitySearchSheet(
         currentCity: _currentCity,
-        onCitySelected: _onCityChanged,
+        onCitySelected: (city) async {
+          await _cityManager.addCity(
+            SavedCity(
+              id: DateTime.now().millisecondsSinceEpoch.toString(),
+              name: city,
+              country: 'Thành phố',
+            ),
+          );
+          final updated = await _cityManager.getSavedCities();
+          final newIdx = updated.indexWhere((c) => c.name.toLowerCase() == city.toLowerCase());
+          setState(() {
+            _savedCities = updated;
+          });
+          if (newIdx != -1) {
+            _onSwitchCity(newIdx);
+          } else {
+            _onCityChanged(city);
+          }
+        },
       ),
     );
   }
@@ -212,13 +344,149 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
       body: InteractiveWeatherSky(
         condition: conditionType,
         child: SafeArea(
-          child: RefreshIndicator(
-            onRefresh: _fetchWeather,
-            color: const Color(0xFF38BDF8),
-            backgroundColor: const Color(0xFF1E293B),
-            child: _buildBody(),
+          child: Column(
+            children: [
+              _buildTopBar(),
+              _buildCityDotsIndicator(),
+              Expanded(
+                child: PageView.builder(
+                  controller: _pageController,
+                  itemCount: _savedCities.isNotEmpty ? _savedCities.length : 1,
+                  onPageChanged: (page) {
+                    if (page != _activeCityIndex && page < _savedCities.length) {
+                      setState(() {
+                        _activeCityIndex = page;
+                        _currentCity = _savedCities[page].name;
+                        _weather = null;
+                      });
+                      _cityManager.setActiveIndex(page);
+                      _fetchWeather();
+                    }
+                  },
+                  itemBuilder: (context, index) {
+                    return RefreshIndicator(
+                      onRefresh: _fetchWeather,
+                      color: const Color(0xFF38BDF8),
+                      backgroundColor: const Color(0xFF1E293B),
+                      child: _buildBody(),
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildTopBar() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // City selector button
+          GestureDetector(
+            onTap: _openCityManager,
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.location_on_rounded,
+                  color: Colors.white,
+                  size: 22,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  _weather?.nearestArea.areaName.isNotEmpty == true
+                      ? _weather!.nearestArea.areaName
+                      : _currentCity,
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                const Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  color: AppColors.textSecondary,
+                  size: 20,
+                ),
+              ],
+            ),
+          ),
+          // Action Buttons (GPS & Search & Settings)
+          Row(
+            children: [
+              IconButton(
+                tooltip: 'Định vị GPS',
+                onPressed: _isLocating ? null : _detectGPSLocation,
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.white.withValues(alpha: 0.12),
+                ),
+                icon: _isLocating
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      )
+                    : const Icon(Icons.my_location_rounded, color: Colors.white, size: 20),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                tooltip: 'Tìm kiếm thành phố',
+                onPressed: _openCitySearch,
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.white.withValues(alpha: 0.12),
+                ),
+                icon: const Icon(Icons.search_rounded, color: Colors.white, size: 20),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                tooltip: 'Danh sách thành phố',
+                onPressed: _openCityManager,
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.white.withValues(alpha: 0.12),
+                ),
+                icon: const Icon(Icons.view_carousel_rounded, color: Colors.white, size: 20),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                tooltip: 'Cài đặt & Thông báo',
+                onPressed: _openSettings,
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.white.withValues(alpha: 0.12),
+                ),
+                icon: const Icon(Icons.settings_outlined, color: Colors.white, size: 20),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCityDotsIndicator() {
+    if (_savedCities.length <= 1) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: List.generate(_savedCities.length, (idx) {
+          final isCurrent = idx == _activeCityIndex;
+          return AnimatedContainer(
+            duration: const Duration(milliseconds: 250),
+            margin: const EdgeInsets.symmetric(horizontal: 3),
+            width: isCurrent ? 18 : 6,
+            height: 6,
+            decoration: BoxDecoration(
+              color: isCurrent ? const Color(0xFF38BDF8) : Colors.white.withValues(alpha: 0.25),
+              borderRadius: BorderRadius.circular(3),
+            ),
+          );
+        }),
       ),
     );
   }
@@ -242,85 +510,6 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
         parent: BouncingScrollPhysics(),
       ),
       slivers: [
-        // App Bar / Header
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // City selector
-                GestureDetector(
-                  onTap: _openCitySearch,
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.location_on_rounded,
-                        color: Colors.white,
-                        size: 22,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        _weather?.nearestArea.areaName.isNotEmpty == true
-                            ? _weather!.nearestArea.areaName
-                            : _currentCity,
-                        style: const TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      const Icon(
-                        Icons.keyboard_arrow_down_rounded,
-                        color: AppColors.textSecondary,
-                        size: 20,
-                      ),
-                    ],
-                  ),
-                ),
-                // Action Buttons (GPS & Search)
-                Row(
-                  children: [
-                    IconButton(
-                      tooltip: 'Định vị GPS',
-                      onPressed: _isLocating ? null : _detectGPSLocation,
-                      style: IconButton.styleFrom(
-                        backgroundColor: Colors.white.withValues(alpha: 0.12),
-                      ),
-                      icon: _isLocating
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                            )
-                          : const Icon(Icons.my_location_rounded, color: Colors.white, size: 20),
-                    ),
-                    const SizedBox(width: 8),
-                    IconButton(
-                      tooltip: 'Tìm thành phố',
-                      onPressed: _openCitySearch,
-                      style: IconButton.styleFrom(
-                        backgroundColor: Colors.white.withValues(alpha: 0.12),
-                      ),
-                      icon: const Icon(Icons.search_rounded, color: Colors.white, size: 20),
-                    ),
-                    const SizedBox(width: 8),
-                    IconButton(
-                      tooltip: 'Cài đặt & Thông báo',
-                      onPressed: _openSettings,
-                      style: IconButton.styleFrom(
-                        backgroundColor: Colors.white.withValues(alpha: 0.12),
-                      ),
-                      icon: const Icon(Icons.settings_outlined, color: Colors.white, size: 20),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-
         // Extreme Weather Alert Banner (if any)
         SliverToBoxAdapter(
           child: WeatherAlertBanner(
@@ -352,9 +541,20 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
             ),
           ),
 
-        const SliverToBoxAdapter(child: SizedBox(height: 12)),
+        const SliverToBoxAdapter(child: SizedBox(height: 14)),
 
-        // Hourly Forecast
+        // NEW: Interactive 24H Spline Chart
+        if (hourly.isNotEmpty)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: WeatherForecastChart(hourly: hourly),
+            ),
+          ),
+
+        const SliverToBoxAdapter(child: SizedBox(height: 14)),
+
+        // Hourly Forecast List Cards
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),

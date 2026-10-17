@@ -121,6 +121,9 @@ Get the official release APK directly on your Android device:
 - [x] **Milestone 6**: Intelligent extreme weather banners (Thunderstorm, UV, Heatwave, Gale).
 - [x] **Milestone 7**: Golang serverless gateway with Gemini 2.5 Flash AI advice integration.
 - [x] **Milestone 8**: Settings Screen with multi-session customizable local notifications.
+- [x] **Milestone 9**: Interactive 24-hour meteorological spline chart with touch scrubber and metric tabs (°C, % Rain, Wind).
+- [x] **Milestone 10**: Multi-city carousel manager with horizontal page swipe and GPS synchronization.
+- [x] **Milestone 11**: Real Android home screen AppWidget provider with dark glassmorphism layout & AI summary sync.
 
 ---
 
