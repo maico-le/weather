@@ -17,6 +17,7 @@ import '../widgets/hourly_forecast_list.dart';
 import '../widgets/interactive_weather_sky.dart';
 import '../widgets/weather_alert_banner.dart';
 import '../widgets/weather_metrics_grid.dart';
+import 'settings_screen.dart';
 
 class WeatherHomeScreen extends StatefulWidget {
   const WeatherHomeScreen({super.key});
@@ -184,6 +185,20 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
     );
   }
 
+  void _openSettings() {
+    final cityName = _weather?.nearestArea.areaName.isNotEmpty == true
+        ? _weather!.nearestArea.areaName
+        : _currentCity;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => SettingsScreen(
+          cityName: cityName,
+          currentCondition: _weather?.currentCondition,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final conditionType = _weather != null
@@ -289,6 +304,15 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
                         backgroundColor: Colors.white.withValues(alpha: 0.12),
                       ),
                       icon: const Icon(Icons.search_rounded, color: Colors.white, size: 20),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      tooltip: 'Cài đặt & Thông báo',
+                      onPressed: _openSettings,
+                      style: IconButton.styleFrom(
+                        backgroundColor: Colors.white.withValues(alpha: 0.12),
+                      ),
+                      icon: const Icon(Icons.settings_outlined, color: Colors.white, size: 20),
                     ),
                   ],
                 ),

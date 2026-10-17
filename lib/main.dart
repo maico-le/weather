@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'core/theme/app_theme.dart';
+import 'features/weather/data/services/notification_service.dart';
 import 'features/weather/presentation/screens/weather_home_screen.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Local Notifications
+  await NotificationService().initialize();
 
   // Edge to edge immersive experience
   SystemChrome.setSystemUIOverlayStyle(
