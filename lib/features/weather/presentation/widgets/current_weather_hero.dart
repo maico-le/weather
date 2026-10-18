@@ -26,6 +26,19 @@ class CurrentWeatherHero extends StatelessWidget {
       conditionType,
     );
 
+    bool isNight = false;
+    final todayWeather = today;
+    if (todayWeather != null) {
+      final now = DateTime.now();
+      final currentMinutes = now.hour * 60 + now.minute;
+      final sunriseMinutes = _parseTimeToMinutes(todayWeather.astronomy.sunrise);
+      final sunsetMinutes = _parseTimeToMinutes(todayWeather.astronomy.sunset);
+      isNight = currentMinutes < sunriseMinutes || currentMinutes > sunsetMinutes;
+    } else {
+      final hour = DateTime.now().hour;
+      isNight = hour >= 18 || hour < 6;
+    }
+
     return Column(
       children: [
         // Interactive Vector Mascot Scene with speech bubble
@@ -34,6 +47,7 @@ class CurrentWeatherHero extends StatelessWidget {
           tempC: current.tempC,
           weatherDesc: vietnameseDesc,
           size: 185,
+          isNight: isNight,
         ),
         const SizedBox(height: 6),
 
@@ -107,5 +121,24 @@ class CurrentWeatherHero extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  int _parseTimeToMinutes(String timeStr) {
+    try {
+      final trimmed = timeStr.trim().toUpperCase();
+      final isPM = trimmed.endsWith('PM');
+      final isAM = trimmed.endsWith('AM');
+      final clean = trimmed.replaceAll('AM', '').replaceAll('PM', '').trim();
+      final parts = clean.split(':');
+      var hour = int.parse(parts[0]);
+      final minute = int.parse(parts[1]);
+
+      if (isPM && hour < 12) hour += 12;
+      if (isAM && hour == 12) hour = 0;
+
+      return hour * 60 + minute;
+    } catch (_) {
+      return 6 * 60; // fallback 06:00
+    }
   }
 }

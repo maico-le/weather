@@ -3,7 +3,6 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart';
-import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/weather_mapper.dart';
 
 class AnimatedWeatherScene extends StatefulWidget {
@@ -11,6 +10,7 @@ class AnimatedWeatherScene extends StatefulWidget {
   final int? tempC;
   final String? weatherDesc;
   final double size;
+  final bool? isNight;
 
   const AnimatedWeatherScene({
     super.key,
@@ -18,6 +18,7 @@ class AnimatedWeatherScene extends StatefulWidget {
     this.tempC,
     this.weatherDesc,
     this.size = 185,
+    this.isNight,
   });
 
   @override
@@ -28,8 +29,6 @@ class _AnimatedWeatherSceneState extends State<AnimatedWeatherScene>
     with TickerProviderStateMixin {
   late AnimationController _danceAnimController;
   late AnimationController _breatheAnimController;
-  late AnimationController _bounceController;
-  late Animation<double> _bounceAnimation;
 
   // Duolingo organic squash-and-stretch scale
   double _pokeSquashY = 1.0;
@@ -62,23 +61,12 @@ class _AnimatedWeatherSceneState extends State<AnimatedWeatherScene>
       vsync: this,
       duration: const Duration(milliseconds: 1600),
     )..repeat(reverse: true);
-
-    // 3. Spring bounce controller when tapped
-    _bounceController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 400),
-    );
-    _bounceAnimation = CurvedAnimation(
-      parent: _bounceController,
-      curve: Curves.elasticOut,
-    );
   }
 
   @override
   void dispose() {
     _danceAnimController.dispose();
     _breatheAnimController.dispose();
-    _bounceController.dispose();
     _speechTimer?.cancel();
     _pokeResetTimer?.cancel();
     super.dispose();
@@ -94,10 +82,7 @@ class _AnimatedWeatherSceneState extends State<AnimatedWeatherScene>
       _pokeCountInInterval = 0;
     });
 
-    // 1. Trigger energetic spring bounce
-    _bounceController.forward(from: 0.0);
-
-    // 2. Squash & stretch physics
+    // 1. Squash & stretch physics
     setState(() {
       _pokeSquashY = 0.76;
       _pokeSquashX = 1.24;
@@ -174,15 +159,36 @@ class _AnimatedWeatherSceneState extends State<AnimatedWeatherScene>
 
     String speech = '';
 
+    final isNight = widget.isNight ?? (hour >= 18 || hour < 6);
+
     // Easter egg: User taps repeatedly
     if (_pokeCountInInterval >= 4) {
-      final easterEggs = [
-        'Ui da nhột quá bạn ơi haha! Đừng chọc bụng tui nữa mà! 😆',
-        'Á á tui chóng mặt quá rồi nè, tha cho tui xíu đi! 😵‍💫',
-        'Bấm hoài dị, tính thử độ cảm ứng của màn hình hả? 😜',
-        'Tui mến bạn lắm, nhưng chọc hoài là tui trốn đi ngủ đó! ❤️',
+      if (isNight) {
+        final sleepingEasterEggs = [
+          'Ưm... ai chọc tui dậy đó? Cho tui ngủ thêm 5 phút nữa thui mà... 🥱💤',
+          'Zzz... mắt tui mở hổng lên luôn nè, tha cho tui ngủ tiếp đi sen ơi! 😴',
+          'Đang mơ thấy ăn bánh quy trăng mà bị bạn chọc thức giấc rồi nè! 🍪🌙',
+          'Nhột quá sen ơi haha, nhưng buồn ngủ quá chừng luôn rồi... 💤',
+        ];
+        speech = sleepingEasterEggs[_random.nextInt(sleepingEasterEggs.length)];
+      } else {
+        final easterEggs = [
+          'Ui da nhột quá bạn ơi haha! Đừng chọc bụng tui nữa mà! 😆',
+          'Á á tui chóng mặt quá rồi nè, tha cho tui xíu đi! 😵‍💫',
+          'Bấm hoài dị, tính thử độ cảm ứng của màn hình hả? 😜',
+          'Tui mến bạn lắm, nhưng chọc hoài là tui trốn đi ngủ đó! ❤️',
+        ];
+        speech = easterEggs[_random.nextInt(easterEggs.length)];
+      }
+    } else if (isNight && (widget.conditionType == WeatherConditionType.sunny || widget.conditionType == WeatherConditionType.partlyCloudy)) {
+      final moonQuotes = [
+        'Khò khò... Zzz... Trăng tròn ru bạn ngủ một giấc thật sâu nè! 🌙💤',
+        'Trời đêm thanh bình ghê, bạn cũng cất điện thoại rồi ngủ sớm đi nha! ✨',
+        'Ngắm sao lấp lánh với tui một lát rồi nhắm mắt mơ đẹp nghen! ⭐',
+        'Tui canh gác bầu trời đêm cho bạn rồi, ngủ ngon nhé sen thương! 🛌',
+        'Đêm nay mát mẻ, cuộn chăn ấm ngủ là sướng nhất đời luôn! 😴',
       ];
-      speech = easterEggs[_random.nextInt(easterEggs.length)];
+      speech = moonQuotes[_random.nextInt(moonQuotes.length)];
     } else if (hour >= 22 || hour < 5) {
       final nightQuotes = [
         'Khuya rồi đó sen ơi, ngủ sớm giữ sức khỏe mai cày tiếp nè! 🌙',
@@ -194,7 +200,7 @@ class _AnimatedWeatherSceneState extends State<AnimatedWeatherScene>
       switch (widget.conditionType) {
         case WeatherConditionType.sunny:
           final sunnyQuotes = [
-            'Hôm nay trời nắng ráo ${temp}°C, ra đường nhớ thoa kem chống nắng nha sen! ☀️',
+            'Hôm nay trời nắng ráo $temp°C, ra đường nhớ thoa kem chống nắng nha sen! ☀️',
             'Nắng vàng rực rỡ, uống đủ 2 lít nước để da dẻ luôn mướt mát nha! 💧',
             'Thời tiết đẹp quá nè, rủ bạn bè đi cà phê trà sữa là hết ý! 🧋',
             'Nắng lên rồi! Chúc bạn một ngày ngập tràn năng lượng và may mắn! ✨',
@@ -414,6 +420,17 @@ class _AnimatedWeatherSceneState extends State<AnimatedWeatherScene>
   }
 
   Widget _buildMascotVisual() {
+    final isNight = widget.isNight ?? (DateTime.now().hour >= 18 || DateTime.now().hour < 6);
+
+    // Night time: Sleeping Moon for clear/partly cloudy skies
+    if (isNight && (widget.conditionType == WeatherConditionType.sunny || widget.conditionType == WeatherConditionType.partlyCloudy)) {
+      return Lottie.asset(
+        'assets/animations/sleeping_moon_duolingo.json',
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) => _buildVectorFallback(),
+      );
+    }
+
     if (widget.conditionType == WeatherConditionType.sunny) {
       return Lottie.asset(
         'assets/animations/sunny_duolingo.json',
