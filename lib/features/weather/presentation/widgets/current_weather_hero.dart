@@ -28,12 +28,14 @@ class CurrentWeatherHero extends StatelessWidget {
 
     return Column(
       children: [
-        // Vector Animation Scene
+        // Interactive Vector Mascot Scene with speech bubble
         AnimatedWeatherScene(
           conditionType: conditionType,
-          size: 190,
+          tempC: current.tempC,
+          weatherDesc: vietnameseDesc,
+          size: 185,
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
 
         // Large Temperature with Animated Rolling Counter
         Row(
